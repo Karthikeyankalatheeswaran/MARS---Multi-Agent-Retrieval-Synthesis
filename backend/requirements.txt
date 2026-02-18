@@ -14,8 +14,7 @@ langgraph>=0.0.20
 langchain-text-splitters>=0.2.0
 
 # Vector Store
-pinecone-client>=3.0.0
-langchain-pinecone>=0.0.3
+langchain-pinecone>=0.1.0
 
 # LLM Providers
 openai>=1.7.0
