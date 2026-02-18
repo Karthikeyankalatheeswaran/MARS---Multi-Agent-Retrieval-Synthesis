@@ -1,5 +1,5 @@
 from langgraph.graph import StateGraph, END
-from api.core.state import MARSState
+from api.core.state import MARSState, MARSStateDict
 
 from api.council.planner import PlannerAgent
 from api.council.scout import StudentScoutAgent
@@ -24,44 +24,44 @@ def build_graph():
     scribe = ScribeAgent()
     critic = CriticAgent()
 
-    workflow = StateGraph(MARSState)
-
-    workflow.add_node("planner", lambda state: planner.run(state).dict())
-    workflow.add_node("student_scout", lambda state: student_scout.run(state).dict())
-    workflow.add_node("research_scout", lambda state: research_scout.run(state).dict())
-    workflow.add_node("oracle", lambda state: oracle.run(state).dict())
-    workflow.add_node("analyst", lambda state: analyst.run(state).dict())
-    workflow.add_node("scribe", lambda state: scribe.run(state).dict())
-    workflow.add_node("critic", lambda state: critic.run(state).dict())
+    workflow = StateGraph(MARSStateDict)
+    # Using lambda wrappers to handle conversions between TypedDict and Pydantic MARSState
+    # This prevents InvalidUpdateError by ensuring nodes return plain dicts.
+    workflow.add_node("planner", lambda state: planner.run(MARSState(**state)).model_dump())
+    workflow.add_node("student_scout", lambda state: student_scout.run(MARSState(**state)).model_dump())
+    workflow.add_node("research_scout", lambda state: research_scout.run(MARSState(**state)).model_dump())
+    workflow.add_node("oracle", lambda state: oracle.run(MARSState(**state)).model_dump())
+    workflow.add_node("analyst", lambda state: analyst.run(MARSState(**state)).model_dump())
+    workflow.add_node("scribe", lambda state: scribe.run(MARSState(**state)).model_dump())
+    workflow.add_node("critic", lambda state: critic.run(MARSState(**state)).model_dump())
 
     workflow.set_entry_point("planner")
 
-    def route_after_planner(state: MARSState) -> str:
-        if state.intent in ["greeting", "feedback"]:
+    def route_after_planner(state: MARSStateDict) -> str:
+        intent = state.get("intent")
+        mode = state.get("mode")
+        if intent in ["greeting", "feedback"]:
             return "scribe"
-        if state.intent == "exam_prediction":
+        if intent == "exam_prediction":
             return "oracle"
-        if state.mode == "research":
+        if mode == "research":
             return "research_scout"
         else:
             return "student_scout"
 
-    def route_after_scout(state: MARSState) -> str:
+    def route_after_scout(state: MARSStateDict) -> str:
         return "analyst"
 
-    def route_after_oracle(state: MARSState) -> str:
-        # Oracle produces a draft_answer directly, so we might skip Analyst or use Analyst to refine.
-        # OracleAgent.run produces draft_answer.
-        # Scribe expects draft_answer to finalize.
-        # Analyst expects retrieved_sources.
-        # Using Scribe directly is safest.
+    def route_after_oracle(state: MARSStateDict) -> str:
         return "scribe"
 
-    def route_after_analyst(state: MARSState) -> str:
+    def route_after_analyst(state: MARSStateDict) -> str:
         return "scribe"
 
-    def route_after_scribe(state: MARSState) -> str:
-        if state.mode == "student" and state.intent == "new_query":
+    def route_after_scribe(state: MARSStateDict) -> str:
+        intent = state.get("intent")
+        mode = state.get("mode")
+        if mode == "student" and intent == "new_query":
             return "critic"
         return END
 

@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, TypedDict
 from pydantic import BaseModel, Field
 
 
@@ -23,6 +23,23 @@ class AgentLog(BaseModel):
     thinking: str = ""
     output_preview: str = ""
     details: Dict[str, Any] = Field(default_factory=dict)
+
+
+class MARSStateDict(TypedDict, total=False):
+    user_query: str
+    mode: Optional[str]
+    namespace: Optional[str]
+    chat_history: List[Dict[str, Any]]
+    intent: Optional[str]
+    answer_type: Optional[str]
+    retrieved_sources: List[Dict[str, Any]]
+    refined_context: Optional[str]
+    draft_answer: Optional[str]
+    critic_status: Optional[str]
+    critic_reason: Optional[str]
+    grounding_score: Optional[float]
+    papers_metadata: List[Dict[str, Any]]
+    agent_logs: List[Dict[str, Any]]
 
 
 class MARSState(BaseModel):

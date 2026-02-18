@@ -134,29 +134,29 @@ class ChatView(APIView):
             # Execute the LangGraph workflow
             start_time = time.time()
             graph = build_graph()
-            final_state_dict = graph.invoke(state)
+            final_state_raw = graph.invoke(state.model_dump())
 
             # Reconstruct state — handle both dict and MARSState returns
-            if isinstance(final_state_dict, dict):
+            if isinstance(final_state_raw, dict):
                 # Extract only known fields to avoid issues
                 final_state = MARSState(
-                    user_query=final_state_dict.get('user_query', query),
-                    mode=final_state_dict.get('mode', mode),
-                    namespace=final_state_dict.get('namespace', namespace),
-                    chat_history=final_state_dict.get('chat_history', chat_history),
-                    intent=final_state_dict.get('intent'),
-                    answer_type=final_state_dict.get('answer_type'),
-                    retrieved_sources=final_state_dict.get('retrieved_sources', []),
-                    refined_context=final_state_dict.get('refined_context'),
-                    draft_answer=final_state_dict.get('draft_answer'),
-                    critic_status=final_state_dict.get('critic_status'),
-                    critic_reason=final_state_dict.get('critic_reason'),
-                    grounding_score=final_state_dict.get('grounding_score'),
-                    papers_metadata=final_state_dict.get('papers_metadata', []),
-                    agent_logs=final_state_dict.get('agent_logs', []),
+                    user_query=final_state_raw.get('user_query', query),
+                    mode=final_state_raw.get('mode', mode),
+                    namespace=final_state_raw.get('namespace', namespace),
+                    chat_history=final_state_raw.get('chat_history', chat_history),
+                    intent=final_state_raw.get('intent'),
+                    answer_type=final_state_raw.get('answer_type'),
+                    retrieved_sources=final_state_raw.get('retrieved_sources', []),
+                    refined_context=final_state_raw.get('refined_context'),
+                    draft_answer=final_state_raw.get('draft_answer'),
+                    critic_status=final_state_raw.get('critic_status'),
+                    critic_reason=final_state_raw.get('critic_reason'),
+                    grounding_score=final_state_raw.get('grounding_score'),
+                    papers_metadata=final_state_raw.get('papers_metadata', []),
+                    agent_logs=final_state_raw.get('agent_logs', []),
                 )
             else:
-                final_state = final_state_dict
+                final_state = final_state_raw
 
             elapsed = time.time() - start_time
 
