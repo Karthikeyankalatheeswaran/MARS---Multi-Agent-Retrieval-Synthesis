@@ -5,13 +5,13 @@ django-cors-headers>=4.3.0
 whitenoise>=6.6.0
 
 # LangChain & LLM
-langchain>=0.1.0
-langchain-community>=0.0.13
-langchain-core>=0.1.10
-langchain-openai>=0.0.3
-langchain-groq>=0.0.1
+langchain>=0.2.0
+langchain-community>=0.2.0
+langchain-core>=0.2.0
+langchain-openai>=0.1.0
+langchain-groq>=0.1.0
 langgraph>=0.0.20
-langchain-text-splitters>=0.0.1
+langchain-text-splitters>=0.2.0
 
 # Vector Store
 pinecone-client>=3.0.0
