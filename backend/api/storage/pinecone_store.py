@@ -59,7 +59,7 @@ def ensure_index_exists():
 
 
 def create_vectorstore(documents: List[Document], namespace: str):
-    from langchain_pinecone import PineconeVectorStore
+    from langchain_community.vectorstores import Pinecone as PineconeVectorStore
 
     ensure_index_exists()
     embeddings = _get_embeddings()
@@ -94,7 +94,7 @@ def create_vectorstore(documents: List[Document], namespace: str):
 
 
 def load_vectorstore(namespace: str):
-    from langchain_pinecone import PineconeVectorStore
+    from langchain_community.vectorstores import Pinecone as PineconeVectorStore
 
     embeddings = _get_embeddings()
     try:
