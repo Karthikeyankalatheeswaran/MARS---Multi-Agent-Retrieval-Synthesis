@@ -26,13 +26,13 @@ def build_graph():
 
     workflow = StateGraph(MARSState)
 
-    workflow.add_node("planner", planner.run)
-    workflow.add_node("student_scout", student_scout.run)
-    workflow.add_node("research_scout", research_scout.run)
-    workflow.add_node("oracle", oracle.run)
-    workflow.add_node("analyst", analyst.run)
-    workflow.add_node("scribe", scribe.run)
-    workflow.add_node("critic", critic.run)
+    workflow.add_node("planner", lambda state: planner.run(state).dict())
+    workflow.add_node("student_scout", lambda state: student_scout.run(state).dict())
+    workflow.add_node("research_scout", lambda state: research_scout.run(state).dict())
+    workflow.add_node("oracle", lambda state: oracle.run(state).dict())
+    workflow.add_node("analyst", lambda state: analyst.run(state).dict())
+    workflow.add_node("scribe", lambda state: scribe.run(state).dict())
+    workflow.add_node("critic", lambda state: critic.run(state).dict())
 
     workflow.set_entry_point("planner")
 
