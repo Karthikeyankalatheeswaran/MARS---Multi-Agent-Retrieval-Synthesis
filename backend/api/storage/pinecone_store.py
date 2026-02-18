@@ -76,21 +76,17 @@ def create_vectorstore(documents: List[Document], namespace: str):
     texts = [doc.page_content for doc in valid_docs]
     metadatas = [doc.metadata for doc in valid_docs]
 
-    try:
-        print(f"[Pinecone] Embedding {len(texts)} documents in namespace: {namespace}")
-        vectorstore = PineconeVectorStore.from_texts(
-            texts=texts,
-            embedding=embeddings,
-            index_name=PINECONE_INDEX_NAME,
-            namespace=namespace,
-            metadatas=metadatas,
-            batch_size=64
-        )
-        print(f"[Pinecone] Successfully created vectorstore")
-        return vectorstore
-    except Exception as e:
-        print(f"[Pinecone] Error creating vectorstore: {e}")
-        return None
+    print(f"[Pinecone] Embedding {len(texts)} documents in namespace: {namespace}")
+    vectorstore = PineconeVectorStore.from_texts(
+        texts=texts,
+        embedding=embeddings,
+        index_name=PINECONE_INDEX_NAME,
+        namespace=namespace,
+        metadatas=metadatas,
+        batch_size=64
+    )
+    print(f"[Pinecone] Successfully created vectorstore")
+    return vectorstore
 
 
 def load_vectorstore(namespace: str):
