@@ -13,6 +13,11 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'mars-default-secret-key')
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 ALLOWED_HOSTS = [h.strip().replace('*', '.') if h.strip().startswith('*') else h.strip() for h in os.getenv('ALLOWED_HOSTS', '*').split(',') if h.strip()]
 
+# Automatically add Render's external hostname
+RENDER_EXTERNAL_HOSTNAME = os.getenv('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
 # Render deployment SSL header
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
