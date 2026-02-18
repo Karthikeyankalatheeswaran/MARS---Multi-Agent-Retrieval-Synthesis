@@ -27,8 +27,8 @@ def _get_embeddings():
         from langchain_openai import OpenAIEmbeddings
         _embeddings = OpenAIEmbeddings(
             model="text-embedding-3-small",
-            openai_api_key=OPENROUTER_API_KEY,
-            openai_api_base=OPENROUTER_BASE_URL,
+            api_key=OPENROUTER_API_KEY,
+            base_url=OPENROUTER_BASE_URL,
         )
     return _embeddings
 
@@ -83,7 +83,7 @@ def create_vectorstore(documents: List[Document], namespace: str):
         index_name=PINECONE_INDEX_NAME,
         namespace=namespace,
         metadatas=metadatas,
-        batch_size=64
+        batch_size=32
     )
     print(f"[Pinecone] Successfully created vectorstore")
     return vectorstore
