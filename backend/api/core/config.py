@@ -1,0 +1,21 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL")
+
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
+PINECONE_CLOUD = os.getenv("PINECONE_CLOUD")
+PINECONE_REGION = os.getenv("PINECONE_REGION")
+
+HF_API_TOKEN = os.getenv("HF_API_TOKEN")
+HF_EMBEDDING_MODEL = os.getenv("HF_EMBEDDING_MODEL")
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_API_KEY_2 = os.getenv("GROQ_API_KEY_2")
+
+TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
+SERPAPI_API_KEY = os.getenv("SERPAPI_API_KEY")
