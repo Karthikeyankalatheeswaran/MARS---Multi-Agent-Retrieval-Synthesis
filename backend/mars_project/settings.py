@@ -79,6 +79,7 @@ LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_TZ = True
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # File upload settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 209715200  # 200MB
