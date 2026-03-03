@@ -4,7 +4,7 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from langchain_groq import ChatGroq
 
-from api.storage.pinecone_store import load_vectorstore
+from api.storage.faiss_store import load_faiss_index
 from api.core.config import OPENROUTER_API_KEY, OPENROUTER_BASE_URL, GROQ_API_KEY
 
 
@@ -12,7 +12,7 @@ def build_rag_chain(namespace: str):
     """
     LangChain-native RAG pipeline
     """
-    vectorstore = load_vectorstore(namespace)
+    vectorstore = load_faiss_index(namespace)
     retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
 
     llm = ChatGroq(

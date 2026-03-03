@@ -1,121 +1,128 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --accent: #1142d4;
-  --accent-dim: rgba(17, 66, 212, 0.15);
-  --bg-primary: #0d0f17;
-  --bg-secondary: #13151f;
-  --bg-tertiary: #1a1d2e;
-  --bg-card: #1e2133;
-  --border: rgba(255,255,255,0.07);
-  --border-accent: rgba(17, 66, 212, 0.35);
-  --text-primary: #e8eaf0;
-  --text-secondary: #7880a0;
-  --text-muted: #454965;
+  /* Exact Stitch Colors based on screenshot */
+  --bg-sidebar: #0f111a;
+  --bg-main: #141722;
+  --bg-card: #1c202e;
+  --bg-input: #1b1e2e;
+  
+  --accent-blue: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-dim: rgba(37, 99, 235, 0.15);
+
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-card: rgba(255, 255, 255, 0.12);
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 html, body, #root {
   height: 100%;
-  background: var(--bg-primary);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--bg-main);
   color: var(--text-primary);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
-
-/* Markdown prose inside chat */
-.prose { color: var(--text-primary); max-width: 100%; }
-.prose h1,.prose h2,.prose h3,.prose h4 { color: #fff; font-weight: 600; margin: 1rem 0 0.5rem; }
-.prose p { margin: 0.6rem 0; line-height: 1.75; }
-.prose ul,.prose ol { padding-left: 1.4rem; margin: 0.5rem 0; }
-.prose li { margin: 0.25rem 0; }
-.prose code { 
-  font-family: 'JetBrains Mono', monospace; 
-  background: rgba(255,255,255,0.08); 
-  padding: 1px 5px; 
-  border-radius: 4px; 
-  font-size: 0.85em;
-  color: #a5c8ff;
-}
-.prose pre { 
-  background: #0a0c14; 
-  border: 1px solid var(--border); 
-  border-radius: 10px; 
-  padding: 1rem; 
-  overflow-x: auto;
-  margin: 0.8rem 0;
-}
-.prose pre code { background: none; padding: 0; color: #c9d1d9; }
-.prose blockquote { 
-  border-left: 3px solid var(--accent); 
-  padding-left: 1rem; 
-  color: var(--text-secondary); 
-  margin: 0.75rem 0;
-}
-.prose table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; }
-.prose th { background: var(--bg-tertiary); padding: 0.5rem 0.75rem; text-align: left; border: 1px solid var(--border); font-weight: 600; }
-.prose td { padding: 0.5rem 0.75rem; border: 1px solid var(--border); }
-.prose a { color: #6b9fff; text-decoration: underline; }
-.prose strong { color: #fff; font-weight: 600; }
-.prose hr { border-color: var(--border); margin: 1rem 0; }
-
 /* Animations */
-@keyframes fade-up {
+@keyframes slideUp {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
-@keyframes pulse-dot {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 1; }
-}
-@keyframes slide-in-right {
-  from { opacity: 0; transform: translateX(20px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-@keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 8px rgba(17, 66, 212, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(17, 66, 212, 0.6); }
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease forwards;
 }
 
-.animate-fade-up { animation: fade-up 0.35s ease forwards; }
-.animate-slide-right { animation: slide-in-right 0.3s ease forwards; }
-.animate-glow { animation: glow-pulse 2s infinite; }
-
-/* Typing dots */
-.typing-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; margin: 0 2px; }
-.typing-dot:nth-child(1) { animation: pulse-dot 1.2s infinite 0s; }
-.typing-dot:nth-child(2) { animation: pulse-dot 1.2s infinite 0.2s; }
-.typing-dot:nth-child(3) { animation: pulse-dot 1.2s infinite 0.4s; }
-
-/* Glass card */
-.glass {
-  background: rgba(30, 33, 51, 0.6);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--border);
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.2);
 }
 
-/* Input focus glow */
-.input-focus:focus {
-  outline: none;
-  border-color: var(--accent) !important;
-  box-shadow: 0 0 0 3px rgba(17, 66, 212, 0.2);
+/* Base button and input resets */
+button {
+  cursor: pointer;
+  border: none;
+  background: transparent;
 }
 
-/* Agent status colors */
-.agent-planner { color: #f59e0b; }
-.agent-scout { color: #10b981; }
-.agent-analyst { color: #6366f1; }
-.agent-critic { color: #ef4444; }
-.agent-oracle { color: #8b5cf6; }
-.agent-scribe { color: #06b6d4; }
+/* Custom class for the 4 suggestion cards */
+.suggestion-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  padding: 18px;
+  text-align: left;
+  transition: all 0.2s;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.suggestion-card:hover {
+  border-color: var(--accent-blue);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+/* Markdown formatting for the chat */
+.prose {
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+.prose p { margin-bottom: 0.8rem; }
+.prose p:last-child { margin-bottom: 0; }
+.prose h1, .prose h2, .prose h3 {
+  color: #fff;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+.prose ul, .prose ol { padding-left: 1.25rem; margin-bottom: 0.5rem; }
+.prose li { margin-bottom: 0.25rem; }
+.prose code {
+  background: rgba(255,255,255,0.1);
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  color: #93c5fd;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+.prose pre {
+  background: #000;
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.prose pre code {
+  background: transparent;
+  padding: 0;
+  color: #e2e8f0;
+}

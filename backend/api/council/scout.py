@@ -1,6 +1,6 @@
 import time
 from api.core.state import MARSState, RetrievedSource, AgentLog
-from api.storage.pinecone_store import load_vectorstore
+from api.storage.faiss_store import load_faiss_index
 
 
 class StudentScoutAgent:
@@ -36,7 +36,7 @@ class StudentScoutAgent:
                 return state
 
         try:
-            vectorstore = load_vectorstore(state.namespace)
+            vectorstore = load_faiss_index(state.namespace)
 
             if state.intent == "follow_up" and len(state.chat_history) > 0:
                 recent_context = state.chat_history[-1].content[:200]
@@ -61,7 +61,7 @@ class StudentScoutAgent:
             state.agent_logs.append(AgentLog(
                 agent="Student Scout", icon="search", status="completed",
                 duration_ms=elapsed,
-                thinking=f"Searching Pinecone namespace '{state.namespace}' with query: '{search_query[:100]}...'",
+                thinking=f"Searching FAISS index '{state.namespace}' with query: '{search_query[:100]}...',",
                 output_preview=f"Found {len(state.retrieved_sources)} relevant chunks from PDF ({elapsed}ms)",
                 details={
                     "namespace": state.namespace,
@@ -79,7 +79,7 @@ class StudentScoutAgent:
             state.agent_logs.append(AgentLog(
                 agent="Student Scout", icon="search", status="error",
                 duration_ms=elapsed,
-                thinking=f"Failed to retrieve from Pinecone: {str(e)}",
+                thinking=f"Failed to retrieve from FAISS: {str(e)}",
                 output_preview=f"Retrieval failed: {str(e)[:100]}",
                 details={"error": str(e), "namespace": state.namespace}
             ))

@@ -1,22 +1,16 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import AgentTrace from './AgentTrace';
 
 function TypingIndicator() {
   return (
-    <div className="flex items-center gap-2 px-4 py-3">
-      <div
-        className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-        style={{ background: 'var(--accent)' }}
-      >M</div>
-      <div
-        className="flex items-center gap-1 px-3 py-2 rounded-2xl rounded-tl-sm"
-        style={{ background: 'var(--bg-card)' }}
-      >
-        <span className="typing-dot" />
-        <span className="typing-dot" />
-        <span className="typing-dot" />
+    <div className="flex items-center gap-3 px-4 py-3">
+      <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold shrink-0" style={{ background: 'var(--accent-blue)', color: 'white' }}>M</div>
+      <div className="flex items-center gap-1.5">
+        <div className="w-1.5 h-1.5 rounded-full bg-[#64748b] animate-bounce" style={{ animationDelay: '0ms' }} />
+        <div className="w-1.5 h-1.5 rounded-full bg-[#64748b] animate-bounce" style={{ animationDelay: '150ms' }} />
+        <div className="w-1.5 h-1.5 rounded-full bg-[#64748b] animate-bounce" style={{ animationDelay: '300ms' }} />
       </div>
     </div>
   );
@@ -24,10 +18,10 @@ function TypingIndicator() {
 
 function UserMessage({ content }) {
   return (
-    <div className="flex justify-end px-4 py-1.5 animate-fade-up">
+    <div className="flex justify-end px-4 py-3">
       <div
-        className="max-w-[78%] px-4 py-3 rounded-2xl rounded-tr-sm text-sm"
-        style={{ background: 'var(--accent)', color: '#fff', lineHeight: 1.6 }}
+        className="max-w-[80%] px-4 py-3 rounded-2xl rounded-tr-sm text-sm"
+        style={{ background: 'var(--bg-card)', color: '#f8fafc', border: '1px solid var(--border-card)', lineHeight: 1.6 }}
       >
         {content}
       </div>
@@ -37,165 +31,113 @@ function UserMessage({ content }) {
 
 function AssistantMessage({ content, metadata, agentLogs, isLatest }) {
   const [traceOpen, setTraceOpen] = useState(isLatest);
-  const [sourceOpen, setSourceOpen] = useState(false);
-
-  const groundingScore = metadata?.grounding_score;
-  const criticStatus = metadata?.critic_status;
-  const sources = metadata?.retrieved_sources || [];
-  const papers = metadata?.papers_metadata || [];
-  const elapsed = metadata?.elapsed_time;
 
   return (
-    <div className="flex gap-2.5 px-4 py-1.5 animate-fade-up">
+    <div className="flex gap-4 px-4 py-2 mb-2 animate-slide-up max-w-[90%]">
       {/* Avatar */}
-      <div
-        className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
-        style={{ background: 'var(--accent)' }}
-      >M</div>
+      <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold shrink-0 mt-1" style={{ background: 'var(--accent-blue)', color: 'white' }}>
+        M
+      </div>
 
       <div className="flex-1 min-w-0">
-        {/* Main response */}
-        <div
-          className="px-4 py-3 rounded-2xl rounded-tl-sm text-sm"
-          style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
-        >
-          <div className="prose prose-sm">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-          </div>
+        <div className="prose text-sm" style={{ color: 'var(--text-primary)' }}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
         </div>
 
-        {/* Metadata row */}
-        <div className="flex flex-wrap items-center gap-2 mt-2 px-1">
-          {elapsed && (
-            <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-              ⏱ {elapsed.toFixed(1)}s
-            </span>
-          )}
-          {groundingScore !== undefined && groundingScore !== null && (
-            <span
-              className="text-[10px] px-1.5 py-0.5 rounded-full"
-              style={{
-                background: groundingScore >= 0.7 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
-                color: groundingScore >= 0.7 ? '#10b981' : '#ef4444',
-              }}
-            >
-              Grounding {(groundingScore * 100).toFixed(0)}%
-            </span>
-          )}
-          {criticStatus && (
-            <span
-              className="text-[10px] px-1.5 py-0.5 rounded-full"
-              style={{
-                background: criticStatus === 'pass' ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
-                color: criticStatus === 'pass' ? '#10b981' : '#f59e0b',
-              }}
-            >
-              Critic {criticStatus === 'pass' ? '✓ Pass' : '⚠ Review'}
-            </span>
-          )}
-
-          {/* Source citations */}
-          {(sources.length > 0 || papers.length > 0) && (
-            <button
-              onClick={() => setSourceOpen(o => !o)}
-              className="text-[10px] px-1.5 py-0.5 rounded-full transition-colors"
-              style={{
-                background: sourceOpen ? 'var(--accent-dim)' : 'rgba(255,255,255,0.05)',
-                color: sourceOpen ? '#6b9fff' : 'var(--text-muted)',
-              }}
-            >
-              {sourceOpen ? '▼' : '▶'} {sources.length + papers.length} source{sources.length + papers.length !== 1 ? 's' : ''}
-            </button>
-          )}
-
-          {/* Agent trace toggle */}
-          {agentLogs && agentLogs.length > 0 && (
+        {/* Action icons row (like copying, tracing, etc) */}
+        <div className="flex items-center gap-3 mt-4">
+           {agentLogs && agentLogs.length > 0 && (
             <button
               onClick={() => setTraceOpen(o => !o)}
-              className="text-[10px] px-1.5 py-0.5 rounded-full transition-colors"
+              className="text-[11px] px-2.5 py-1 rounded-full flex items-center gap-1.5 border transition-colors"
               style={{
-                background: traceOpen ? 'var(--accent-dim)' : 'rgba(255,255,255,0.05)',
-                color: traceOpen ? '#6b9fff' : 'var(--text-muted)',
+                borderColor: traceOpen ? 'var(--accent-blue)' : 'var(--border-color)',
+                color: traceOpen ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                background: traceOpen ? 'var(--accent-dim)' : 'transparent'
               }}
             >
-              {traceOpen ? '▼' : '▶'} Agent trace
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Agent Trace
             </button>
+          )}
+          {metadata?.retrieved_sources && metadata.retrieved_sources.length > 0 && (
+            <div className="text-[11px] px-2.5 py-1 rounded-full flex items-center gap-1.5 border" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              {metadata.retrieved_sources.length} Sources
+            </div>
           )}
         </div>
 
-        {/* Sources panel */}
-        {sourceOpen && (sources.length > 0 || papers.length > 0) && (
-          <div
-            className="mt-2 p-3 rounded-xl border text-xs"
-            style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border)' }}
-          >
-            {sources.slice(0, 4).map((src, i) => (
-              <div key={i} className="mb-2 last:mb-0">
-                <div className="font-medium mb-0.5" style={{ color: '#6b9fff' }}>
-                  📄 {src.source || `Chunk ${i + 1}`}
-                  {src.page && <span style={{ color: 'var(--text-muted)' }}> · Page {src.page}</span>}
-                </div>
-                <div style={{ color: 'var(--text-secondary)' }} className="line-clamp-2">{src.content}</div>
-              </div>
-            ))}
-            {papers.slice(0, 3).map((p, i) => (
-              <div key={`p-${i}`} className="mb-2 last:mb-0">
-                <div className="font-medium mb-0.5" style={{ color: '#10b981' }}>
-                  🔬 {p.title || `Paper ${i + 1}`}
-                  {p.authors && <span style={{ color: 'var(--text-muted)' }}> · {p.authors}</span>}
-                </div>
-                {p.url && (
-                  <a href={p.url} target="_blank" rel="noreferrer" style={{ color: 'var(--text-muted)' }} className="underline text-[10px]">
-                    View paper →
-                  </a>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Agent trace */}
+        {/* Agent trace panel */}
         {traceOpen && agentLogs && agentLogs.length > 0 && (
-          <AgentTrace logs={agentLogs} />
+          <div className="mt-4">
+             <AgentTrace logs={agentLogs} />
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-function WelcomeScreen({ mode }) {
-  const suggestions = mode === 'student'
-    ? ['Summarize my document', 'What is the main argument?', 'Generate flashcards', 'Create a study guide']
-    : ['Latest AI hardware trends', 'Quantum computing breakthroughs', 'LLM scaling laws research', 'Diffusion model advances'];
+function WelcomeScreen({ mode, onSuggestionClick }) {
+  const cards = [
+    {
+      icon: '📄',
+      title: 'Summarize Paper',
+      desc: 'Upload a PDF and I\'ll extract key findings and methodology.',
+      action: 'Summarize the uploaded document'
+    },
+    {
+      icon: '💡',
+      title: 'Concept Deep-dive',
+      desc: 'Explain the Heisenberg Uncertainty Principle like I\'m five.',
+      action: 'Explain the Heisenberg Uncertainty Principle like I\'m five'
+    },
+    {
+      icon: '📝',
+      title: 'Draft Outline',
+      desc: 'Create a 5-paragraph structure for my ethics in AI essay.',
+      action: 'Create a 5-paragraph structure for my ethics in AI essay'
+    },
+    {
+      icon: '🧠',
+      title: 'Critical Analysis',
+      desc: 'Analyze the socioeconomic impact of the Industrial Revolution.',
+      action: 'Analyze the socioeconomic impact of the Industrial Revolution'
+    }
+  ];
 
   return (
-    <div className="flex flex-col items-center justify-center h-full px-6 text-center">
-      <div
-        className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-5 animate-glow"
-        style={{ background: 'var(--accent)' }}
-      >
-        {mode === 'student' ? '📚' : '🔬'}
+    <div className="flex flex-col items-center justify-center h-full px-8 pb-10 w-full max-w-4xl mx-auto animate-slide-up">
+      <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6" style={{ background: 'var(--bg-card)' }}>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--accent-blue)' }}>
+          <path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+        </svg>
       </div>
-      <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-        {mode === 'student' ? 'Student Mode' : 'Research Mode'}
-      </h2>
-      <p className="text-sm max-w-sm mb-8" style={{ color: 'var(--text-secondary)' }}>
-        {mode === 'student'
-          ? 'Upload a PDF and ask anything about it. MARS will retrieve, analyze, and verify the answer.'
-          : 'Ask any research question. MARS will search Arxiv, Tavily, and synthesize a verified answer.'}
+      
+      <h1 className="text-3xl font-bold mb-3 text-center tracking-tight">
+        How can I assist your learning <span style={{ color: 'var(--accent-blue)' }}>today?</span>
+      </h1>
+      
+      <p className="text-sm text-center max-w-lg mb-10 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+        Toggle to <span style={{ color: 'var(--accent-blue)' }}>Research Mode</span> for deep citation support, or<br/>
+        stay in <span style={{ color: 'var(--accent-blue)' }}>Student Mode</span> for simplified explanations.
       </p>
-      <div className="grid grid-cols-2 gap-2 max-w-sm w-full">
-        {suggestions.map((s, i) => (
-          <button
-            key={i}
-            className="px-3 py-2.5 rounded-xl text-xs text-left transition-all hover:opacity-90"
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-secondary)',
-            }}
-          >
-            {s}
+
+      <div className="grid w-full gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+        {cards.map((c, i) => (
+          <button key={i} onClick={() => onSuggestionClick(c.action)} className="suggestion-card">
+            <div className="w-8 h-8 rounded flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'var(--accent-dim)', color: 'var(--accent-blue)' }}>
+              {c.icon}
+            </div>
+            <div>
+              <div className="text-[13px] font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{c.title}</div>
+              <div className="text-[11px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{c.desc}</div>
+            </div>
           </button>
         ))}
       </div>
@@ -204,40 +146,45 @@ function WelcomeScreen({ mode }) {
 }
 
 export default function ChatPanel({ chat }) {
-  const { messages, isLoading, mode, lastResponse, send } = chat;
+  const { messages, isLoading, mode, lastResponse, send, upload, isUploading, uploadedFile } = chat;
   const [input, setInput] = useState('');
   const bottomRef = useRef(null);
-  const textareaRef = useRef(null);
+  const fileRef = useRef(null);
 
-  useEffect(() => {
+  const scrollToBottom = () => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
+  };
 
   const handleSend = () => {
     if (!input.trim() || isLoading) return;
     send(input);
     setInput('');
-    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    setTimeout(scrollToBottom, 100);
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+    if (e.key === 'Enter' && !e.shiftKey) { 
+      e.preventDefault(); 
+      handleSend(); 
+    }
   };
 
-  const handleInput = (e) => {
-    setInput(e.target.value);
-    e.target.style.height = 'auto';
-    e.target.style.height = Math.min(e.target.scrollHeight, 180) + 'px';
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await upload(file);
+    }
   };
 
   return (
-    <div className="flex flex-col flex-1 min-w-0 h-full">
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto py-4" style={{ scrollbarWidth: 'thin' }}>
+    <div className="flex flex-col flex-1 h-full relative max-w-5xl mx-auto w-full">
+      
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto pt-6 px-4 md:px-8 pb-4" style={{ scrollbarWidth: 'none' }}>
         {messages.length === 0 ? (
-          <WelcomeScreen mode={mode} />
+          <WelcomeScreen mode={mode} onSuggestionClick={(text) => { setInput(text); }} />
         ) : (
-          <>
+          <div className="flex flex-col gap-6 w-full max-w-3xl mx-auto">
             {messages.map((msg, i) => (
               msg.role === 'user'
                 ? <UserMessage key={i} content={msg.content} />
@@ -250,77 +197,85 @@ export default function ChatPanel({ chat }) {
                   />
             ))}
             {isLoading && <TypingIndicator />}
-          </>
+            <div ref={bottomRef} className="h-4" />
+          </div>
         )}
-        <div ref={bottomRef} />
       </div>
 
-      {/* Input bar */}
-      <div
-        className="shrink-0 px-4 pb-5 pt-3 border-t"
-        style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}
-      >
-        {/* Mode indicator */}
-        <div className="flex items-center gap-1.5 mb-2">
-          <div
-            className="text-[11px] px-2 py-0.5 rounded-full"
-            style={{
-              background: mode === 'student' ? 'rgba(16,185,129,0.12)' : 'rgba(99,102,241,0.12)',
-              color: mode === 'student' ? '#10b981' : '#6366f1',
-            }}
-          >
-            {mode === 'student' ? '📚 Student Mode' : '🔬 Research Mode'}
-          </div>
-          {isLoading && (
-            <div className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-              <div className="w-3 h-3 border-2 border-current rounded-full animate-spin border-t-transparent" />
-              Agents working…
+      {/* Input Bar Fixed Near Bottom */}
+      <div className="shrink-0 w-full p-4 md:px-8 bg-transparent pt-4 pb-6 mt-auto">
+        <div className="max-w-3xl mx-auto">
+          
+          <div className="flex flex-col relative rounded-2xl overflow-hidden transition-all shadow-lg" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)' }}>
+            
+            {/* If Student Mode has a file */}
+            {mode === 'student' && uploadedFile && (
+               <div className="flex items-center gap-2 px-4 py-2 border-b text-[11px]" style={{ borderColor: 'var(--border-color)', color: '#10b981' }}>
+                 <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                   <path d="M5 13l4 4L19 7" />
+                 </svg>
+                 {uploadedFile.name} attached
+               </div>
+            )}
+            
+            <div className="flex items-center gap-2 px-3 py-3">
+              {/* Attach Dropdown / Button */}
+              {mode === 'student' && (
+                <>
+                  <button 
+                    onClick={() => fileRef.current?.click()}
+                    disabled={isUploading || isLoading}
+                    className="p-2 rounded-lg transition-colors hover:bg-white/5 disabled:opacity-50"
+                    title="Upload PDF Document"
+                  >
+                    {isUploading ? (
+                      <div className="w-5 h-5 border-2 rounded-full animate-spin border-t-transparent" style={{ borderColor: 'var(--text-secondary)' }} />
+                    ) : (
+                      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--text-secondary)' }}>
+                        <path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                      </svg>
+                    )}
+                  </button>
+                  <input ref={fileRef} type="file" accept=".pdf" className="hidden" onChange={handleFileChange} />
+                </>
+              )}
+
+              {/* Text Area */}
+              <input
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={isLoading}
+                placeholder="Type your request or upload a document..."
+                className="flex-1 bg-transparent border-none outline-none text-sm px-2 py-1 placeholder:text-[var(--text-muted)] text-[var(--text-primary)]"
+              />
+
+              {/* Mic Icon (Visual only) */}
+              <button className="p-2 rounded-lg transition-colors hover:bg-white/5 hidden sm:block">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--text-secondary)' }}>
+                  <path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+              </button>
+
+              {/* Send Button */}
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || isLoading}
+                className="w-9 h-9 rounded-lg flex items-center justify-center transition-all disabled:opacity-50"
+                style={{ background: 'var(--accent-blue)', color: 'white' }}
+              >
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                  <path d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                </svg>
+              </button>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Input area */}
-        <div
-          className="flex items-end gap-3 px-4 py-3 rounded-2xl border transition-all"
-          style={{
-            background: 'var(--bg-card)',
-            borderColor: 'var(--border)',
-          }}
-        >
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={handleInput}
-            onKeyDown={handleKeyDown}
-            placeholder={mode === 'student' ? 'Ask about your document…' : 'Ask a research question…'}
-            disabled={isLoading}
-            rows={1}
-            className="flex-1 bg-transparent resize-none text-sm outline-none placeholder:text-sm"
-            style={{
-              color: 'var(--text-primary)',
-              minHeight: '24px',
-              maxHeight: '180px',
-              lineHeight: '1.6',
-            }}
-          />
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || isLoading}
-            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all active:scale-95"
-            style={{
-              background: input.trim() && !isLoading ? 'var(--accent)' : 'var(--bg-tertiary)',
-              opacity: input.trim() && !isLoading ? 1 : 0.5,
-            }}
-          >
-            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-              <path d="M12 19V5M5 12l7-7 7 7" />
-            </svg>
-          </button>
+          <div className="text-center mt-3 text-[9px] font-bold tracking-widest uppercase" style={{ color: mode === 'student' ? '#10b981' : '#6366f1' }}>
+            <span style={{ color: 'var(--text-muted)' }}>• MARS IS IN</span> {mode} MODE <span style={{ color: 'var(--text-muted)' }}>- POWERED BY ADVANCED LLM</span>
+          </div>
+          
         </div>
-
-        <p className="text-center text-[10px] mt-2" style={{ color: 'var(--text-muted)' }}>
-          MARS uses multi-agent verification — responses are grounded in retrieved sources.
-        </p>
       </div>
     </div>
   );
