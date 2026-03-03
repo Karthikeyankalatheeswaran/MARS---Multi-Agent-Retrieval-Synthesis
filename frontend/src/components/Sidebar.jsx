@@ -75,11 +75,7 @@ export default function Sidebar({ open, onClose, mode, onModeChange, onClear, me
           
           <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-slate-100 dark:bg-slate-800/50 cursor-pointer group hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
             <div className="size-8 rounded-full bg-gradient-to-tr from-primary to-blue-400 flex items-center justify-center text-white overflow-hidden shadow-sm">
-              <img 
-                className="w-full h-full object-cover" 
-                alt="User profile" 
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSuK5rJPxsej0aP76QMmQJ1A9pYUBluDWhCocvoZxlgHXt6-3ScEuOprkMxeGkFiqWj-6aad90LOn3Vr4YL3Jocnea-alvMQDVxgUxOYjPYqkOlOr4Nv1lOBwrp7Sh6-eysnP-1lGwva-_iIS39_xi7PO9Y2B8rivvJGikGYM7YWATicy3jHZyfROZQ7E96h4emxOOWgSYKCcLseHcc5LYt-jbVvNHpbftHIoVSnAvhSCwY5yAuMSePsDqA_OExmD7tr1XlmUVy7WE" 
-              />
+              <span className="text-xs font-bold">AR</span>
             </div>
             <div className="flex flex-col">
               <p className="text-xs font-bold text-slate-900 dark:text-slate-100">Alex Rivers</p>

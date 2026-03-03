@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import List, Dict, Any
 
 from langchain_community.vectorstores import FAISS
-from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_text_splitters import CharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 
@@ -59,7 +59,7 @@ def ingest_pdf(file_obj, namespace: str) -> Dict[str, Any]:
 
     try:
         # 1. Load
-        loader = PyPDFLoader(tmp_path)
+        loader = PyMuPDFLoader(tmp_path)
         docs = loader.load()
 
         # 2. Chunk
