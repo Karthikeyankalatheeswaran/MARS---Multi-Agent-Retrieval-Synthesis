@@ -235,20 +235,15 @@ class UploadView(APIView):
         namespace = request.data.get('namespace', str(uuid.uuid4()))
 
         try:
-            # Load PDF
-            documents = load_pdf(uploaded_file)
-
-            # Chunk
-            chunks = chunk_documents(documents)
-
-            # Embed in Pinecone
-            create_vectorstore(chunks, namespace=namespace)
+            # Use FAISS local ingestion (offline, sentence-transformers)
+            from api.storage.faiss_store import ingest_pdf
+            result = ingest_pdf(uploaded_file, namespace=namespace)
 
             return Response({
                 "message": "Document processed successfully",
                 "namespace": namespace,
-                "pages": len(documents),
-                "chunks": len(chunks),
+                "pages": result["pages"],
+                "chunks": result["chunks"],
                 "filename": uploaded_file.name,
                 "size_mb": round(uploaded_file.size / (1024 * 1024), 2),
             }, status=status.HTTP_200_OK)

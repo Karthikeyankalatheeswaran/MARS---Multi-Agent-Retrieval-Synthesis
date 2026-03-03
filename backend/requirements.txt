@@ -13,9 +13,17 @@ langchain-groq>=0.1.0
 langgraph>=0.2.0
 langchain-text-splitters>=0.2.0
 
-# Vector Store
+# Vector Store — Cloud (Research Mode)
 pinecone>=3.0.0
 langchain-pinecone>=0.1.0
+
+# Vector Store — Local/FAISS (Student Mode, offline)
+faiss-cpu>=1.7.4
+sentence-transformers>=2.6.0
+langchain-huggingface>=0.0.3
+
+# HuggingFace (Studio generative tasks: summarization, TTS, Q&A)
+huggingface-hub>=0.22.0
 
 # LLM Providers
 openai>=1.7.0

@@ -4,17 +4,12 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 const api = axios.create({
   baseURL: API_BASE,
-  timeout: 120000,
+  timeout: 180000,
   headers: { 'Content-Type': 'application/json' }
 });
 
 export async function sendChat(query, mode, namespace, chatHistory) {
-  const { data } = await api.post('/chat/', {
-    query,
-    mode,
-    namespace,
-    chat_history: chatHistory
-  });
+  const { data } = await api.post('/chat/', { query, mode, namespace, chat_history: chatHistory });
   return data;
 }
 
@@ -22,7 +17,6 @@ export async function uploadFile(file, namespace) {
   const formData = new FormData();
   formData.append('file', file);
   if (namespace) formData.append('namespace', namespace);
-
   const { data } = await api.post('/upload/', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 300000,
@@ -31,9 +25,7 @@ export async function uploadFile(file, namespace) {
 }
 
 export async function exportPdf(question, answer, sources) {
-  const response = await api.post('/export/', { question, answer, sources }, {
-    responseType: 'blob'
-  });
+  const response = await api.post('/export/', { question, answer, sources }, { responseType: 'blob' });
   const url = window.URL.createObjectURL(new Blob([response.data]));
   const link = document.createElement('a');
   link.href = url;
@@ -64,7 +56,28 @@ export async function generateStudyCards(content) {
   return data;
 }
 
-export async function predictExamQuestions(subjectCode) {
-  const { data } = await api.post('/exam-oracle/', { subject_code: subjectCode });
+// Studio endpoints (NotebookLM-style)
+export async function studioStudyGuide(context) {
+  const { data } = await api.post('/studio/study-guide/', { context });
+  return data;
+}
+
+export async function studioBriefing(context) {
+  const { data } = await api.post('/studio/briefing/', { context });
+  return data;
+}
+
+export async function studioFlashcards(context) {
+  const { data } = await api.post('/studio/flashcards/', { context });
+  return data;
+}
+
+export async function studioKeyTopics(context) {
+  const { data } = await api.post('/studio/key-topics/', { context });
+  return data;
+}
+
+export async function studioAudio(context) {
+  const { data } = await api.post('/studio/audio/', { context });
   return data;
 }
