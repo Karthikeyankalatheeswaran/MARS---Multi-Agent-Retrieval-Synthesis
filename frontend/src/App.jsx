@@ -6,7 +6,7 @@ import StudioPanel from './components/StudioPanel';
 
 export default function App() {
   const chat = useChat();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
   const [studioOpen, setStudioOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
@@ -14,14 +14,14 @@ export default function App() {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      if (mobile) { setSidebarOpen(false); setStudioOpen(false); }
+      if (!mobile) setSidebarOpen(true);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   return (
-    <div className="flex w-full h-full overflow-hidden antialiased">
+    <div className="flex h-screen overflow-hidden bg-bglight dark:bg-bgdark text-slate-900 dark:text-slate-100 font-display">
       
       {/* Sidebar */}
       <Sidebar
@@ -34,86 +34,83 @@ export default function App() {
         isMobile={isMobile}
       />
 
-      {/* Main Container */}
-      <main className="flex flex-col flex-1 min-w-0 h-full relative" style={{ background: 'var(--bg-main)' }}>
+      {/* Main Container Area */}
+      <main className="flex-1 flex flex-col relative bg-bglight dark:bg-bgdark overflow-hidden">
         
-        {/* Top Navigation Bar */}
-        <header className="flex items-center justify-between px-6 pt-5 pb-2 shrink-0 w-full z-10 transition-all">
+        {/* Header / Top Navigation Bar */}
+        <header className="sticky top-0 z-10 flex items-center justify-between px-8 py-4 bg-bglight/80 dark:bg-bgdark/80 backdrop-blur-md shrink-0 border-b border-white/5">
           
-          <div className="flex items-center gap-2">
-            {!sidebarOpen && (
-              <button onClick={() => setSidebarOpen(true)} className="p-1 mr-2 opacity-60 hover:opacity-100 transition-opacity">
-                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
+          <div className="flex items-center gap-2 min-w-0">
+            {(!sidebarOpen || isMobile) && (
+              <button 
+                onClick={() => setSidebarOpen(true)} 
+                className="p-1 mr-2 opacity-60 hover:opacity-100 transition-opacity"
+              >
+                <span className="material-symbols-outlined text-lg">menu</span>
               </button>
             )}
-            <span className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>MARS</span>
-            <span className="text-[13px] font-medium opacity-50">&gt;</span>
-            <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>Intelligent Assistant</span>
+            <span className="text-sm font-bold tracking-tight text-slate-400">MARS</span>
+            <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 text-xs translate-y-0.5">chevron_right</span>
+            <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">Intelligent Assistant</span>
           </div>
 
           {/* Mode Toggle Switch (Center) */}
-          <div className="absolute left-1/2 -translate-x-1/2 hidden md:flex items-center p-1 rounded-full" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
-             <button
-                onClick={() => chat.changeMode('student')}
-                className="flex items-center gap-2 px-5 py-1.5 rounded-full text-xs font-semibold transition-all shadow-sm"
-                style={{
-                  background: chat.mode === 'student' ? 'var(--accent-blue)' : 'transparent',
-                  color: chat.mode === 'student' ? 'white' : 'var(--text-secondary)'
-                }}
-              >
-                <div className="w-1.5 h-1.5 rounded-full" style={{ background: chat.mode === 'student' ? 'white' : 'var(--text-muted)' }} />
-                Student
-              </button>
-              <button
-                onClick={() => chat.changeMode('research')}
-                className="flex items-center gap-2 px-5 py-1.5 rounded-full text-xs font-semibold transition-all"
-                 style={{
-                  background: chat.mode === 'research' ? 'var(--accent-blue)' : 'transparent',
-                  color: chat.mode === 'research' ? 'white' : 'var(--text-secondary)'
-                }}
-              >
-                <div className="w-1.5 h-1.5 rounded-full" style={{ background: chat.mode === 'research' ? 'white' : 'var(--text-muted)' }} />
-                Research
-              </button>
+          <div className="flex-1 flex justify-center mx-4">
+            <div className="flex items-center p-1 bg-slate-200 dark:bg-slate-800/80 rounded-full w-full max-w-[256px] shadow-inner transition-all">
+               <button
+                  onClick={() => chat.changeMode('student')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-full text-xs font-bold transition-all ${chat.mode === 'student' ? 'bg-white dark:bg-slate-700 text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                >
+                  <span className="material-symbols-outlined text-base">school</span>
+                  Student
+                </button>
+                <button
+                  onClick={() => chat.changeMode('research')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-full text-xs font-bold transition-all ${chat.mode === 'research' ? 'bg-white dark:bg-slate-700 text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                >
+                  <span className="material-symbols-outlined text-base">science</span>
+                  Research
+                </button>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
              <button 
-                className="opacity-60 hover:opacity-100 transition-opacity flex items-center gap-1.5 p-1 text-sm bg-gray-800 rounded-full w-7 h-7 justify-center border border-gray-700 font-bold"
-                style={{ color: 'var(--text-primary)' }}
+                onClick={() => setStudioOpen(!studioOpen)}
+                className={`size-9 flex items-center justify-center rounded-full transition-colors ${studioOpen ? 'bg-primary text-white' : 'hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'}`}
+                title="Studio / NotebookLM Features"
               >
-                ?
+                <span className="material-symbols-outlined">auto_stories</span>
+              </button>
+              <button 
+                className="size-9 flex items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
+                title="Help"
+              >
+                <span className="material-symbols-outlined">help</span>
               </button>
           </div>
         </header>
 
-        {/* Chat Area */}
-        <ChatPanel chat={chat} />
+        {/* Chat Area Section */}
+        <div className="flex-1 relative flex overflow-hidden">
+          <ChatPanel chat={chat} />
 
-        {/* Studio Panel Component */}
-        {studioOpen && (
-          <div className="absolute top-0 right-0 h-full shadow-2xl z-20 transition-all border-l border-white/5">
-            <StudioPanel
-              messages={chat.messages}
-              uploadedFile={chat.uploadedFile}
-              mode={chat.mode}
-              lastResponse={chat.lastResponse}
-              onClose={() => setStudioOpen(false)}
-            />
-          </div>
-        )}
+          {/* Studio Panel Component */}
+          {studioOpen && (
+            <div className="w-[400px] border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-30 transition-all animate-slide-right overflow-y-auto">
+              <StudioPanel
+                messages={chat.messages}
+                uploadedFile={chat.uploadedFile}
+                mode={chat.mode}
+                lastResponse={chat.lastResponse}
+                onClose={() => setStudioOpen(false)}
+              />
+            </div>
+          )}
+        </div>
 
       </main>
 
-      {/* Mobile Overlay */}
-      {isMobile && sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-20 backdrop-blur-sm transition-opacity"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
     </div>
   );
 }

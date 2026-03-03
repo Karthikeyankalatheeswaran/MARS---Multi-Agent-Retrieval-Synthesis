@@ -1,125 +1,119 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-:root {
-  /* Exact Stitch Colors based on screenshot */
-  --bg-sidebar: #0f111a;
-  --bg-main: #141722;
-  --bg-card: #1c202e;
-  --bg-input: #1b1e2e;
+@theme {
+  --color-primary: #1142d4;
+  --color-bglight: #f6f6f8;
+  --color-bgdark: #101522;
+  --color-brand: #1142d4;
   
-  --accent-blue: #2563eb;
-  --accent-hover: #1d4ed8;
-  --accent-dim: rgba(37, 99, 235, 0.15);
-
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-card: rgba(255, 255, 255, 0.12);
+  --font-display: "Inter", sans-serif;
+  --font-sans: "Inter", sans-serif;
+  
+  --radius-custom: 8px;
+  
+  --animate-pulse-slow: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.95); }
+  }
 }
 
-* {
-  box-sizing: border-box;
+@layer base {
+  body {
+    background-color: var(--color-bglight);
+    color: #0f172a; /* text-slate-900 equivalent */
+    font-family: var(--font-sans);
+  }
+  .dark body {
+    background-color: var(--color-bgdark);
+    color: #f1f5f9; /* text-slate-100 equivalent */
+  }
 }
 
-html, body, #root {
-  height: 100%;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  background: var(--bg-main);
-  color: var(--text-primary);
-  font-family: 'Inter', system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
+.sidebar-item-active {
+  background-color: rgba(17, 66, 212, 0.1);
+  color: #1142d4;
 }
 
-/* Animations */
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+.glass-panel {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.animate-slide-up {
-  animation: slideUp 0.3s ease forwards;
+.glow-border {
+  box-shadow: 0 0 15px rgba(17, 66, 212, 0.3);
 }
 
-/* Scrollbar styling */
+.agent-line::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 24px;
+  bottom: -8px;
+  width: 2px;
+  background: #2d3139;
+}
+
+.agent-line-last::before {
+  display: none;
+}
+
+/* Custom scrollbar for dark mode */
 ::-webkit-scrollbar {
   width: 6px;
-  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #0f1115;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.1);
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.2);
+  background: #2d3139;
+  border-radius: 10px;
 }
 
-/* Base button and input resets */
-button {
-  cursor: pointer;
-  border: none;
-  background: transparent;
+/* Scrollbar-hide utility */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
 }
-
-/* Custom class for the 4 suggestion cards */
-.suggestion-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-card);
-  border-radius: 12px;
-  padding: 18px;
-  text-align: left;
-  transition: all 0.2s;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-.suggestion-card:hover {
-  border-color: var(--accent-blue);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
 /* Markdown formatting for the chat */
 .prose {
-  color: var(--text-primary);
-  line-height: 1.6;
+  line-height: 1.625;
 }
 .prose p { margin-bottom: 0.8rem; }
 .prose p:last-child { margin-bottom: 0; }
 .prose h1, .prose h2, .prose h3 {
-  color: #fff;
-  font-weight: 600;
+  font-weight: 700;
   margin-top: 1rem;
   margin-bottom: 0.5rem;
 }
 .prose ul, .prose ol { padding-left: 1.25rem; margin-bottom: 0.5rem; }
 .prose li { margin-bottom: 0.25rem; }
 .prose code {
-  background: rgba(255,255,255,0.1);
+  background: rgba(17, 66, 212, 0.1);
   padding: 0.1rem 0.3rem;
   border-radius: 4px;
-  color: #93c5fd;
+  color: #1142d4;
   font-family: monospace;
   font-size: 0.9em;
 }
+.dark .prose code {
+  background: rgba(255, 255, 255, 0.1);
+  color: #93c5fd;
+}
 .prose pre {
-  background: #000;
+  background: #0f172a;
   padding: 1rem;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow-x: auto;
-  border: 1px solid var(--border-color);
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  margin-top: 1rem;
+  margin-bottom: 1rem;
 }
 .prose pre code {
   background: transparent;

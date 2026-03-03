@@ -1,16 +1,18 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import AgentTrace from './AgentTrace';
 
 function TypingIndicator() {
   return (
-    <div className="flex items-center gap-3 px-4 py-3">
-      <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold shrink-0" style={{ background: 'var(--accent-blue)', color: 'white' }}>M</div>
-      <div className="flex items-center gap-1.5">
-        <div className="w-1.5 h-1.5 rounded-full bg-[#64748b] animate-bounce" style={{ animationDelay: '0ms' }} />
-        <div className="w-1.5 h-1.5 rounded-full bg-[#64748b] animate-bounce" style={{ animationDelay: '150ms' }} />
-        <div className="w-1.5 h-1.5 rounded-full bg-[#64748b] animate-bounce" style={{ animationDelay: '300ms' }} />
+    <div className="flex gap-4 px-4 py-2 mb-2 animate-pulse-slow max-w-[90%]">
+      <div className="w-8 h-8 rounded-custom bg-primary flex-shrink-0 flex items-center justify-center shadow-lg shadow-primary/20">
+        <span className="material-symbols-outlined text-white text-lg">auto_awesome</span>
+      </div>
+      <div className="flex-1 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl rounded-tl-none p-4 flex gap-1 items-center">
+        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
       </div>
     </div>
   );
@@ -18,12 +20,14 @@ function TypingIndicator() {
 
 function UserMessage({ content }) {
   return (
-    <div className="flex justify-end px-4 py-3">
-      <div
-        className="max-w-[80%] px-4 py-3 rounded-2xl rounded-tr-sm text-sm"
-        style={{ background: 'var(--bg-card)', color: '#f8fafc', border: '1px solid var(--border-card)', lineHeight: 1.6 }}
-      >
-        {content}
+    <div className="flex justify-end gap-4 px-4 py-2">
+      <div className="max-w-[80%] bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl rounded-tr-none p-4 shadow-sm">
+        <p className="text-sm leading-relaxed text-slate-900 dark:text-slate-100">
+          {content}
+        </p>
+      </div>
+      <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300">
+        AR
       </div>
     </div>
   );
@@ -33,51 +37,45 @@ function AssistantMessage({ content, metadata, agentLogs, isLatest }) {
   const [traceOpen, setTraceOpen] = useState(isLatest);
 
   return (
-    <div className="flex gap-4 px-4 py-2 mb-2 animate-slide-up max-w-[90%]">
+    <div className="flex gap-4 px-4 py-2 mb-4 animate-slide-up w-full">
       {/* Avatar */}
-      <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold shrink-0 mt-1" style={{ background: 'var(--accent-blue)', color: 'white' }}>
-        M
+      <div className="w-8 h-8 rounded-custom bg-primary flex-shrink-0 flex items-center justify-center shadow-lg shadow-primary/20 mt-1">
+        <span className="material-symbols-outlined text-white text-lg">auto_awesome</span>
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="prose text-sm" style={{ color: 'var(--text-primary)' }}>
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-        </div>
-
-        {/* Action icons row (like copying, tracing, etc) */}
-        <div className="flex items-center gap-3 mt-4">
-           {agentLogs && agentLogs.length > 0 && (
-            <button
-              onClick={() => setTraceOpen(o => !o)}
-              className="text-[11px] px-2.5 py-1 rounded-full flex items-center gap-1.5 border transition-colors"
-              style={{
-                borderColor: traceOpen ? 'var(--accent-blue)' : 'var(--border-color)',
-                color: traceOpen ? 'var(--accent-blue)' : 'var(--text-secondary)',
-                background: traceOpen ? 'var(--accent-dim)' : 'transparent'
-              }}
-            >
-              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              Agent Trace
-            </button>
-          )}
-          {metadata?.retrieved_sources && metadata.retrieved_sources.length > 0 && (
-            <div className="text-[11px] px-2.5 py-1 rounded-full flex items-center gap-1.5 border" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
-              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-              {metadata.retrieved_sources.length} Sources
-            </div>
-          )}
-        </div>
-
-        {/* Agent trace panel */}
+        {/* Agent Workflow Section (if logs exist) */}
         {traceOpen && agentLogs && agentLogs.length > 0 && (
-          <div className="mt-4">
+          <div className="mb-4 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-xl p-4 overflow-hidden">
              <AgentTrace logs={agentLogs} />
           </div>
         )}
+
+        {/* AI Response Content */}
+        <div className="bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-2xl rounded-tl-none p-6 shadow-md">
+          <div className="prose prose-sm max-w-none dark:prose-invert">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+          </div>
+
+          <div className="mt-6 flex items-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+            <button className="text-slate-400 hover:text-primary flex items-center gap-1.5 transition-colors">
+              <span className="material-symbols-outlined text-base">content_copy</span>
+              <span className="text-xs font-medium">Copy</span>
+            </button>
+            <button className="text-slate-400 hover:text-green-500 flex items-center gap-1.5 transition-colors">
+              <span className="material-symbols-outlined text-base">format_quote</span>
+              <span className="text-xs font-medium">Cite</span>
+            </button>
+            <div className="flex-1"></div>
+            <button 
+              onClick={() => setTraceOpen(!traceOpen)}
+              className={`text-slate-400 hover:text-primary transition-colors flex items-center gap-1 ${traceOpen ? 'text-primary' : ''}`}
+            >
+              <span className="material-symbols-outlined text-base">analytics</span>
+              <span className="text-xs font-medium">Trace</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -86,25 +84,25 @@ function AssistantMessage({ content, metadata, agentLogs, isLatest }) {
 function WelcomeScreen({ mode, onSuggestionClick }) {
   const cards = [
     {
-      icon: '📄',
+      icon: 'description',
       title: 'Summarize Paper',
       desc: 'Upload a PDF and I\'ll extract key findings and methodology.',
       action: 'Summarize the uploaded document'
     },
     {
-      icon: '💡',
+      icon: 'lightbulb',
       title: 'Concept Deep-dive',
       desc: 'Explain the Heisenberg Uncertainty Principle like I\'m five.',
       action: 'Explain the Heisenberg Uncertainty Principle like I\'m five'
     },
     {
-      icon: '📝',
+      icon: 'draw',
       title: 'Draft Outline',
       desc: 'Create a 5-paragraph structure for my ethics in AI essay.',
       action: 'Create a 5-paragraph structure for my ethics in AI essay'
     },
     {
-      icon: '🧠',
+      icon: 'psychology',
       title: 'Critical Analysis',
       desc: 'Analyze the socioeconomic impact of the Industrial Revolution.',
       action: 'Analyze the socioeconomic impact of the Industrial Revolution'
@@ -112,33 +110,34 @@ function WelcomeScreen({ mode, onSuggestionClick }) {
   ];
 
   return (
-    <div className="flex flex-col items-center justify-center h-full px-8 pb-10 w-full max-w-4xl mx-auto animate-slide-up">
-      <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6" style={{ background: 'var(--bg-card)' }}>
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--accent-blue)' }}>
-          <path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-        </svg>
+    <div className="flex-1 flex flex-col items-center justify-center px-6 max-w-4xl mx-auto w-full pb-32 pt-12 animate-slide-up">
+      <div className="mb-8 p-6 rounded-3xl bg-primary/5 dark:bg-primary/20 border border-primary/10">
+        <span className="material-symbols-outlined text-5xl text-primary leading-none">auto_awesome</span>
       </div>
       
-      <h1 className="text-3xl font-bold mb-3 text-center tracking-tight">
-        How can I assist your learning <span style={{ color: 'var(--accent-blue)' }}>today?</span>
-      </h1>
+      <h2 className="text-4xl font-bold text-center mb-4 bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-primary to-blue-500 dark:from-white dark:via-blue-400 dark:to-primary">
+          How can I assist your learning today?
+      </h2>
       
-      <p className="text-sm text-center max-w-lg mb-10 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-        Toggle to <span style={{ color: 'var(--accent-blue)' }}>Research Mode</span> for deep citation support, or<br/>
-        stay in <span style={{ color: 'var(--accent-blue)' }}>Student Mode</span> for simplified explanations.
+      <p className="text-slate-500 dark:text-slate-400 text-center mb-12 max-w-md">
+          Toggle to <span className="text-primary font-semibold">Research Mode</span> for deep citation support, or stay in <span className="text-primary font-semibold">Student Mode</span> for simplified explanations.
       </p>
 
-      <div className="grid w-full gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
         {cards.map((c, i) => (
-          <button key={i} onClick={() => onSuggestionClick(c.action)} className="suggestion-card">
-            <div className="w-8 h-8 rounded flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'var(--accent-dim)', color: 'var(--accent-blue)' }}>
-              {c.icon}
+          <div 
+            key={i} 
+            onClick={() => onSuggestionClick(c.action)}
+            className="p-5 rounded-2xl bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 hover:border-primary/50 dark:hover:border-primary/50 transition-all cursor-pointer group shadow-sm"
+          >
+            <div className="flex items-start gap-4">
+              <span className="material-symbols-outlined text-primary bg-primary/10 p-2 rounded-lg">{c.icon}</span>
+              <div>
+                <h3 className="font-semibold text-sm mb-1 group-hover:text-primary transition-colors dark:text-slate-200">{c.title}</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{c.desc}</p>
+              </div>
             </div>
-            <div>
-              <div className="text-[13px] font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{c.title}</div>
-              <div className="text-[11px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{c.desc}</div>
-            </div>
-          </button>
+          </div>
         ))}
       </div>
     </div>
@@ -150,16 +149,21 @@ export default function ChatPanel({ chat }) {
   const [input, setInput] = useState('');
   const bottomRef = useRef(null);
   const fileRef = useRef(null);
+  const textareaRef = useRef(null);
 
   const scrollToBottom = () => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isLoading]);
+
   const handleSend = () => {
     if (!input.trim() || isLoading) return;
     send(input);
     setInput('');
-    setTimeout(scrollToBottom, 100);
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
   };
 
   const handleKeyDown = (e) => {
@@ -176,107 +180,101 @@ export default function ChatPanel({ chat }) {
     }
   };
 
+  const handleInput = (e) => {
+    setInput(e.target.value);
+    e.target.style.height = 'auto';
+    e.target.style.height = (e.target.scrollHeight) + 'px';
+  };
+
   return (
-    <div className="flex flex-col flex-1 h-full relative max-w-5xl mx-auto w-full">
+    <div className="flex-1 flex flex-col relative bg-bglight dark:bg-bgdark overflow-hidden">
       
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto pt-6 px-4 md:px-8 pb-4" style={{ scrollbarWidth: 'none' }}>
-        {messages.length === 0 ? (
-          <WelcomeScreen mode={mode} onSuggestionClick={(text) => { setInput(text); }} />
-        ) : (
-          <div className="flex flex-col gap-6 w-full max-w-3xl mx-auto">
-            {messages.map((msg, i) => (
-              msg.role === 'user'
-                ? <UserMessage key={i} content={msg.content} />
-                : <AssistantMessage
-                    key={i}
-                    content={msg.content}
-                    metadata={msg.metadata}
-                    agentLogs={i === messages.length - 1 ? lastResponse?.agent_logs : undefined}
-                    isLatest={i === messages.length - 1}
-                  />
-            ))}
-            {isLoading && <TypingIndicator />}
-            <div ref={bottomRef} className="h-4" />
-          </div>
-        )}
-      </div>
-
-      {/* Input Bar Fixed Near Bottom */}
-      <div className="shrink-0 w-full p-4 md:px-8 bg-transparent pt-4 pb-6 mt-auto">
-        <div className="max-w-3xl mx-auto">
-          
-          <div className="flex flex-col relative rounded-2xl overflow-hidden transition-all shadow-lg" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)' }}>
-            
-            {/* If Student Mode has a file */}
-            {mode === 'student' && uploadedFile && (
-               <div className="flex items-center gap-2 px-4 py-2 border-b text-[11px]" style={{ borderColor: 'var(--border-color)', color: '#10b981' }}>
-                 <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                   <path d="M5 13l4 4L19 7" />
-                 </svg>
-                 {uploadedFile.name} attached
-               </div>
-            )}
-            
-            <div className="flex items-center gap-2 px-3 py-3">
-              {/* Attach Dropdown / Button */}
-              {mode === 'student' && (
-                <>
-                  <button 
-                    onClick={() => fileRef.current?.click()}
-                    disabled={isUploading || isLoading}
-                    className="p-2 rounded-lg transition-colors hover:bg-white/5 disabled:opacity-50"
-                    title="Upload PDF Document"
-                  >
-                    {isUploading ? (
-                      <div className="w-5 h-5 border-2 rounded-full animate-spin border-t-transparent" style={{ borderColor: 'var(--text-secondary)' }} />
-                    ) : (
-                      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--text-secondary)' }}>
-                        <path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                      </svg>
-                    )}
-                  </button>
-                  <input ref={fileRef} type="file" accept=".pdf" className="hidden" onChange={handleFileChange} />
-                </>
-              )}
-
-              {/* Text Area */}
-              <input
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={isLoading}
-                placeholder="Type your request or upload a document..."
-                className="flex-1 bg-transparent border-none outline-none text-sm px-2 py-1 placeholder:text-[var(--text-muted)] text-[var(--text-primary)]"
-              />
-
-              {/* Mic Icon (Visual only) */}
-              <button className="p-2 rounded-lg transition-colors hover:bg-white/5 hidden sm:block">
-                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--text-secondary)' }}>
-                  <path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                </svg>
-              </button>
-
-              {/* Send Button */}
-              <button
-                onClick={handleSend}
-                disabled={!input.trim() || isLoading}
-                className="w-9 h-9 rounded-lg flex items-center justify-center transition-all disabled:opacity-50"
-                style={{ background: 'var(--accent-blue)', color: 'white' }}
-              >
-                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                  <path d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <div className="text-center mt-3 text-[9px] font-bold tracking-widest uppercase" style={{ color: mode === 'student' ? '#10b981' : '#6366f1' }}>
-            <span style={{ color: 'var(--text-muted)' }}>• MARS IS IN</span> {mode} MODE <span style={{ color: 'var(--text-muted)' }}>- POWERED BY ADVANCED LLM</span>
-          </div>
-          
+      <div className="flex-1 overflow-y-auto px-4 py-8 scrollbar-hide">
+        <div className="max-w-4xl mx-auto space-y-8">
+          {messages.length === 0 ? (
+            <WelcomeScreen mode={mode} onSuggestionClick={(text) => { setInput(text); }} />
+          ) : (
+            <>
+              {messages.map((msg, i) => (
+                msg.role === 'user'
+                  ? <UserMessage key={i} content={msg.content} />
+                  : <AssistantMessage
+                      key={i}
+                      content={msg.content}
+                      metadata={msg.metadata}
+                      agentLogs={i === messages.length - 1 ? lastResponse?.agent_logs : undefined}
+                      isLatest={i === messages.length - 1}
+                    />
+              ))}
+              {isLoading && <TypingIndicator />}
+              <div ref={bottomRef} className="h-4" />
+            </>
+          )}
+          <div className="h-32" /> {/* Spacer for floating input */}
         </div>
       </div>
+
+      {/* Floating Input Bar AREA */}
+      <div className="fixed bottom-0 left-0 md:left-72 right-0 p-6 bg-gradient-to-t from-bglight dark:from-bgdark via-bglight/90 dark:via-bgdark/90 to-transparent pointer-events-none z-20">
+        <div className="max-w-4xl mx-auto pointer-events-auto">
+          <div className="relative group">
+            {/* Glow effect */}
+            <div className="absolute -inset-0.5 bg-primary rounded-xl opacity-10 group-focus-within:opacity-20 transition-opacity blur-sm"></div>
+            
+            <div className="relative glass-panel bg-white/70 dark:bg-slate-800/70 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700/50 p-2 flex items-end gap-2 group focus-within:ring-2 focus-within:ring-primary/30 transition-all">
+              
+              <button 
+                onClick={() => fileRef.current?.click()}
+                disabled={isUploading || isLoading}
+                className="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 text-slate-500 dark:text-slate-400 transition-colors flex items-center justify-center disabled:opacity-50"
+              >
+                {isUploading ? (
+                  <div className="w-5 h-5 border-2 rounded-full animate-spin border-t-transparent border-primary" />
+                ) : (
+                  <span className="material-symbols-outlined">attach_file</span>
+                )}
+              </button>
+              <input ref={fileRef} type="file" accept=".pdf" className="hidden" onChange={handleFileChange} />
+
+              <textarea 
+                ref={textareaRef}
+                value={input}
+                onChange={handleInput}
+                onKeyDown={handleKeyDown}
+                rows="1"
+                className="flex-1 bg-transparent border-none focus:ring-0 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 resize-none py-3 px-2 max-h-48 scrollbar-hide text-sm" 
+                placeholder={mode === 'research' ? "Ask MARS anything for deep research..." : "Ask your document anything..."}
+              />
+
+              <div className="flex items-center gap-1">
+                <button className="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 text-slate-500 dark:text-slate-400 transition-colors flex items-center justify-center">
+                  <span className="material-symbols-outlined">mic</span>
+                </button>
+                <button 
+                  onClick={handleSend}
+                  disabled={!input.trim() || isLoading}
+                  className="p-2.5 rounded-xl bg-primary text-white hover:bg-primary/90 transition-all flex items-center justify-center shadow-lg shadow-primary/20 disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined">arrow_upward</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-center mt-3">
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1.5 uppercase font-bold tracking-widest">
+                <span className={`w-1.5 h-1.5 rounded-full ${isLoading ? 'bg-orange-500 animate-pulse' : 'bg-green-500'}`}></span>
+                MARS is in {mode} Mode • Powered by Advanced LLM
+                {uploadedFile && <span className="ml-2 text-primary">• {uploadedFile.name}</span>}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Background Decoration */}
+      <div className="absolute top-0 right-0 -z-10 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none opacity-50"></div>
+      <div className="absolute bottom-0 left-0 -z-10 w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[100px] pointer-events-none opacity-50"></div>
     </div>
   );
 }
