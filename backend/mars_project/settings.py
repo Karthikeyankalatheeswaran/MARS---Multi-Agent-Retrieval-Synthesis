@@ -73,12 +73,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'mars_project.wsgi.application'
 
-# Database configuration for production (using dj-database-url)
+# Database configuration
 import dj_database_url
+_db_url = os.environ.get('DATABASE_URL', '') or f"sqlite:///{DATA_DIR}/db.sqlite3"
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL', f"sqlite:///{DATA_DIR}/db.sqlite3")
-    )
+    'default': dj_database_url.parse(_db_url)
 }
 
 MEDIA_URL = '/media/'
