@@ -1,14 +1,9 @@
 [phases.setup]
 aptPkgs = ["tesseract-ocr", "tesseract-ocr-eng", "libtesseract-dev", "libleptonica-dev", "poppler-utils"]
+cmds = ["apt-get clean && rm -rf /var/lib/apt/lists/*"]
 
-# Clean apt cache after installing OS dependencies
-[phases.setup.cmds]
-cmd = ["apt-get clean && rm -rf /var/lib/apt/lists/*"]
-
-# Delete the pip cache folder before finalizing the build
 [phases.install]
 cmds = ["python -m venv /opt/venv", ". /opt/venv/bin/activate", "pip install -r requirements.txt", "rm -rf ~/.cache/pip"]
 
-# Set HuggingFace Hub to NOT cache models in the Docker image root
 [variables]
 HF_HOME = "/app/data/huggingface_cache"
