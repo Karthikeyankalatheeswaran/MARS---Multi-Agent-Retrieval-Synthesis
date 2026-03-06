@@ -1,0 +1,15 @@
+# Ignore everything except backend for the backend service
+frontend/
+*.docx
+*.pptx
+*.png
+*.html
+README.md
+.git
+.env
+db.sqlite3
+backend/media/
+backend/db.sqlite3
+backend/__pycache__/
+node_modules/
+dist/
