@@ -9,14 +9,21 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Railway Volume support: If a volume is attached, store SQLite & Media there
+RAILWAY_VOLUME_MOUNT_PATH = os.getenv('RAILWAY_VOLUME_MOUNT_PATH', '/app/data')
+if os.path.exists(RAILWAY_VOLUME_MOUNT_PATH):
+    DATA_DIR = Path(RAILWAY_VOLUME_MOUNT_PATH)
+else:
+    DATA_DIR = BASE_DIR
+
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'mars-default-secret-key')
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 ALLOWED_HOSTS = [h.strip().replace('*', '.') if h.strip().startswith('*') else h.strip() for h in os.getenv('ALLOWED_HOSTS', '*').split(',') if h.strip()]
 
-# Automatically add Render's external hostname
-RENDER_EXTERNAL_HOSTNAME = os.getenv('RENDER_EXTERNAL_HOSTNAME')
-if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+# Automatically add Railway external hostname
+RAILWAY_STATIC_URL = os.getenv('RAILWAY_STATIC_URL')
+if RAILWAY_STATIC_URL:
+    ALLOWED_HOSTS.append(RAILWAY_STATIC_URL)
 
 # Render deployment SSL header
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -42,13 +49,13 @@ ROOT_URLCONF = 'mars_project.urls'
 # CORS and CSRF configurations
 CORS_ALLOWED_ORIGINS = os.getenv(
     'CORS_ALLOWED_ORIGINS', 
-    'http://localhost:5173,http://127.0.0.1:5173'
+    'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174'
 ).split(',')
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = os.getenv(
     'CSRF_TRUSTED_ORIGINS',
-    'http://localhost:5173,http://127.0.0.1:5173'
+    'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174'
 ).split(',')
 
 TEMPLATES = [
@@ -70,9 +77,12 @@ WSGI_APPLICATION = 'mars_project.wsgi.application'
 import dj_database_url
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL', f"sqlite:///{BASE_DIR}/db.sqlite3")
+        default=os.getenv('DATABASE_URL', f"sqlite:///{DATA_DIR}/db.sqlite3")
     )
 }
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(DATA_DIR, 'media')
 
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [

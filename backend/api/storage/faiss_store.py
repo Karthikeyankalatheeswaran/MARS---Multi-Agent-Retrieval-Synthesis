@@ -14,10 +14,12 @@ from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_text_splitters import CharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 
-FAISS_INDEX_DIR = Path(os.getenv("FAISS_INDEX_DIR", "media/faiss_indexes"))
+from django.conf import settings
+
+FAISS_INDEX_DIR = Path(os.path.join(settings.MEDIA_ROOT, "faiss_indexes"))
 FAISS_INDEX_DIR.mkdir(parents=True, exist_ok=True)
 
-UPLOADS_DIR = Path("media/uploads")
+UPLOADS_DIR = Path(os.path.join(settings.MEDIA_ROOT, "uploads"))
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
