@@ -73,12 +73,20 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'mars_project.wsgi.application'
 
-# Database configuration
+# Database configuration — bulletproof fallback to SQLite
 import dj_database_url
-_db_url = os.environ.get('DATABASE_URL', '') or f"sqlite:///{DATA_DIR}/db.sqlite3"
-DATABASES = {
-    'default': dj_database_url.parse(_db_url)
-}
+_db_url = os.environ.get('DATABASE_URL', '')
+try:
+    if not _db_url or _db_url.startswith('://'):
+        raise ValueError('empty or invalid')
+    DATABASES = {'default': dj_database_url.parse(_db_url)}
+except Exception:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': DATA_DIR / 'db.sqlite3',
+        }
+    }
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(DATA_DIR, 'media')
