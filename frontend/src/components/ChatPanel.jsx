@@ -27,7 +27,7 @@ function UserMessage({ content }) {
         </p>
       </div>
       <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300">
-        AR
+        U
       </div>
     </div>
   );
@@ -35,6 +35,13 @@ function UserMessage({ content }) {
 
 function AssistantMessage({ content, metadata, agentLogs, isLatest }) {
   const [traceOpen, setTraceOpen] = useState(isLatest);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className="flex gap-4 px-4 py-2 mb-4 animate-slide-up w-full">
@@ -44,10 +51,27 @@ function AssistantMessage({ content, metadata, agentLogs, isLatest }) {
       </div>
 
       <div className="flex-1 min-w-0">
-        {/* Agent Workflow Section (if logs exist) */}
+        {/* Agent Workflow Section */}
         {traceOpen && agentLogs && agentLogs.length > 0 && (
           <div className="mb-4 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-xl p-4 overflow-hidden">
              <AgentTrace logs={agentLogs} />
+          </div>
+        )}
+
+        {/* Grounding Score Badge (Student Mode) */}
+        {metadata?.grounding_score && (
+          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold mb-2 ${
+            metadata.grounding_score >= 80 
+              ? 'bg-green-500/10 text-green-600 border border-green-500/20' 
+              : metadata.grounding_score >= 70 
+                ? 'bg-yellow-500/10 text-yellow-600 border border-yellow-500/20'
+                : 'bg-red-500/10 text-red-600 border border-red-500/20'
+          }`}>
+            <span className="material-symbols-outlined text-xs">verified</span>
+            {metadata.grounding_score}% Grounded
+            {metadata.critic_status && (
+              <span className="ml-1 opacity-60">• {metadata.critic_status}</span>
+            )}
           </div>
         )}
 
@@ -58,13 +82,9 @@ function AssistantMessage({ content, metadata, agentLogs, isLatest }) {
           </div>
 
           <div className="mt-6 flex items-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-            <button className="text-slate-400 hover:text-primary flex items-center gap-1.5 transition-colors">
-              <span className="material-symbols-outlined text-base">content_copy</span>
-              <span className="text-xs font-medium">Copy</span>
-            </button>
-            <button className="text-slate-400 hover:text-green-500 flex items-center gap-1.5 transition-colors">
-              <span className="material-symbols-outlined text-base">format_quote</span>
-              <span className="text-xs font-medium">Cite</span>
+            <button onClick={handleCopy} className="text-slate-400 hover:text-primary flex items-center gap-1.5 transition-colors">
+              <span className="material-symbols-outlined text-base">{copied ? 'check' : 'content_copy'}</span>
+              <span className="text-xs font-medium">{copied ? 'Copied!' : 'Copy'}</span>
             </button>
             <div className="flex-1"></div>
             <button 
@@ -82,7 +102,7 @@ function AssistantMessage({ content, metadata, agentLogs, isLatest }) {
 }
 
 function WelcomeScreen({ mode, onSuggestionClick }) {
-  const cards = [
+  const studentCards = [
     {
       icon: 'description',
       title: 'Summarize Paper',
@@ -92,22 +112,51 @@ function WelcomeScreen({ mode, onSuggestionClick }) {
     {
       icon: 'lightbulb',
       title: 'Concept Deep-dive',
-      desc: 'Explain the Heisenberg Uncertainty Principle like I\'m five.',
-      action: 'Explain the Heisenberg Uncertainty Principle like I\'m five'
+      desc: 'Explain complex concepts in simple terms.',
+      action: 'Explain the key concepts from my document'
     },
     {
-      icon: 'draw',
-      title: 'Draft Outline',
-      desc: 'Create a 5-paragraph structure for my ethics in AI essay.',
-      action: 'Create a 5-paragraph structure for my ethics in AI essay'
+      icon: 'quiz',
+      title: '🔮 Exam Oracle',
+      desc: 'Predict exam questions for a subject code (e.g., CS3401).',
+      action: 'Predict exam questions for CS3401'
     },
     {
       icon: 'psychology',
       title: 'Critical Analysis',
-      desc: 'Analyze the socioeconomic impact of the Industrial Revolution.',
-      action: 'Analyze the socioeconomic impact of the Industrial Revolution'
+      desc: 'Analyze arguments, theories, and supporting evidence.',
+      action: 'Analyze the main arguments in my document'
     }
   ];
+
+  const researchCards = [
+    {
+      icon: 'science',
+      title: 'Literature Survey',
+      desc: 'Search arXiv, Google Scholar and web for recent papers.',
+      action: 'Survey recent research on transformer architectures'
+    },
+    {
+      icon: 'compare_arrows',
+      title: 'Compare Methods',
+      desc: 'Compare approaches across multiple research papers.',
+      action: 'Compare state of the art methods in NLP'
+    },
+    {
+      icon: 'trending_up',
+      title: 'Recent Advances',
+      desc: 'Discover the latest breakthroughs in a field.',
+      action: 'What are the recent advances in reinforcement learning?'
+    },
+    {
+      icon: 'draw',
+      title: 'Draft Outline',
+      desc: 'Create a structured outline for a research paper.',
+      action: 'Create a research paper outline on machine learning in healthcare'
+    }
+  ];
+
+  const cards = mode === 'student' ? studentCards : researchCards;
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-6 max-w-4xl mx-auto w-full pb-32 pt-12 animate-slide-up">
@@ -115,12 +164,15 @@ function WelcomeScreen({ mode, onSuggestionClick }) {
         <span className="material-symbols-outlined text-5xl text-primary leading-none">auto_awesome</span>
       </div>
       
-      <h2 className="text-4xl font-bold text-center mb-4 bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-primary to-blue-500 dark:from-white dark:via-blue-400 dark:to-primary">
-          How can I assist your learning today?
+      <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-primary to-blue-500 dark:from-white dark:via-blue-400 dark:to-primary">
+          {mode === 'student' ? 'How can I assist your learning today?' : 'What would you like to research?'}
       </h2>
       
-      <p className="text-slate-500 dark:text-slate-400 text-center mb-12 max-w-md">
-          Toggle to <span className="text-primary font-semibold">Research Mode</span> for deep citation support, or stay in <span className="text-primary font-semibold">Student Mode</span> for simplified explanations.
+      <p className="text-slate-500 dark:text-slate-400 text-center mb-12 max-w-md text-sm">
+          {mode === 'student' 
+            ? <>Upload a PDF, then ask questions. Try the <span className="text-primary font-semibold">Exam Oracle</span> for predictions!</>
+            : <>Search across <span className="text-primary font-semibold">arXiv</span>, <span className="text-primary font-semibold">Google Scholar</span>, and the <span className="text-primary font-semibold">web</span>.</>
+          }
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
@@ -189,6 +241,19 @@ export default function ChatPanel({ chat }) {
   return (
     <div className="flex-1 flex flex-col relative bg-bglight dark:bg-bgdark overflow-hidden">
       
+      {/* Upload Success Banner */}
+      {uploadedFile && (
+        <div className="mx-4 mt-2 flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500/10 border border-green-500/20 animate-slide-up">
+          <span className="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+          <span className="text-xs font-medium text-green-600 dark:text-green-400 truncate">
+            {uploadedFile.name}
+          </span>
+          <span className="text-[10px] text-green-500/60 ml-auto shrink-0">
+            {uploadedFile.pages} pages • {uploadedFile.chunks} chunks
+          </span>
+        </div>
+      )}
+
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto px-4 py-8 scrollbar-hide">
         <div className="max-w-4xl mx-auto space-y-8">
@@ -215,14 +280,14 @@ export default function ChatPanel({ chat }) {
         </div>
       </div>
 
-      {/* Floating Input Bar AREA */}
-      <div className="fixed bottom-0 left-0 md:left-72 right-0 p-6 bg-gradient-to-t from-bglight dark:from-bgdark via-bglight/90 dark:via-bgdark/90 to-transparent pointer-events-none z-20">
+      {/* Floating Input Bar */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 bg-gradient-to-t from-bglight dark:from-bgdark via-bglight/90 dark:via-bgdark/90 to-transparent pointer-events-none z-20">
         <div className="max-w-4xl mx-auto pointer-events-auto">
           <div className="relative group">
-            {/* Glow effect */}
+            {/* Glow */}
             <div className="absolute -inset-0.5 bg-primary rounded-xl opacity-10 group-focus-within:opacity-20 transition-opacity blur-sm"></div>
             
-            <div className="relative glass-panel bg-white/70 dark:bg-slate-800/70 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700/50 p-2 flex items-end gap-2 group focus-within:ring-2 focus-within:ring-primary/30 transition-all">
+            <div className="relative bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700/50 p-2 flex items-end gap-2 focus-within:ring-2 focus-within:ring-primary/30 transition-all">
               
               <button 
                 onClick={() => fileRef.current?.click()}
@@ -235,7 +300,7 @@ export default function ChatPanel({ chat }) {
                   <span className="material-symbols-outlined">attach_file</span>
                 )}
               </button>
-              <input ref={fileRef} type="file" accept=".pdf" className="hidden" onChange={handleFileChange} />
+              <input ref={fileRef} type="file" accept=".pdf,.docx,.txt,.md" className="hidden" onChange={handleFileChange} />
 
               <textarea 
                 ref={textareaRef}
@@ -244,13 +309,10 @@ export default function ChatPanel({ chat }) {
                 onKeyDown={handleKeyDown}
                 rows="1"
                 className="flex-1 bg-transparent border-none focus:ring-0 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 resize-none py-3 px-2 max-h-48 scrollbar-hide text-sm" 
-                placeholder={mode === 'research' ? "Ask MARS anything for deep research..." : "Ask your document anything..."}
+                placeholder={mode === 'research' ? "Ask MARS for deep research across arXiv, Scholar & web..." : "Ask your document anything..."}
               />
 
               <div className="flex items-center gap-1">
-                <button className="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 text-slate-500 dark:text-slate-400 transition-colors flex items-center justify-center">
-                  <span className="material-symbols-outlined">mic</span>
-                </button>
                 <button 
                   onClick={handleSend}
                   disabled={!input.trim() || isLoading}
@@ -264,8 +326,7 @@ export default function ChatPanel({ chat }) {
             <div className="flex justify-center mt-3">
               <p className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1.5 uppercase font-bold tracking-widest">
                 <span className={`w-1.5 h-1.5 rounded-full ${isLoading ? 'bg-orange-500 animate-pulse' : 'bg-green-500'}`}></span>
-                MARS is in {mode} Mode • Powered by Advanced LLM
-                {uploadedFile && <span className="ml-2 text-primary">• {uploadedFile.name}</span>}
+                {mode === 'student' ? 'Student' : 'Research'} Mode • Gemini Flash
               </p>
             </div>
           </div>

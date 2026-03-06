@@ -7,7 +7,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from django.http import FileResponse
+from django.http import FileResponse, StreamingHttpResponse
+import json
 
 from api.serializers import (
     ChatRequestSerializer,
@@ -19,7 +20,7 @@ from api.core.state import MARSState, ChatMessage
 from api.graph.workflow import build_graph
 from api.storage.pdf_loader import load_pdf
 from api.storage.chunker import chunk_documents
-from api.storage.pinecone_store import create_vectorstore, delete_namespace
+from api.storage.faiss_store import delete_namespace
 from api.utils.export import export_answer_to_pdf
 
 
@@ -217,6 +218,115 @@ class ChatView(APIView):
             )
 
 
+class StreamingChatView(APIView):
+    """
+    POST /api/chat/stream/
+    Process a user query and stream the response via Server-Sent Events.
+    Streams agent logs as they complete, then the final answer token-by-token.
+    """
+
+    def post(self, request):
+        data = request.data
+        query = data.get('query', '')
+        mode = data.get('mode', 'student')
+        namespace = data.get('namespace', '')
+        history_data = data.get('chat_history', [])
+
+        if not query:
+            return Response({"error": "No query provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        chat_history = [
+            ChatMessage(role=m.get('role', 'user'), content=m.get('content', ''))
+            for m in history_data
+        ]
+
+        state = MARSState(
+            user_query=query,
+            mode=mode,
+            namespace=namespace,
+            chat_history=chat_history
+        )
+
+        def event_stream():
+            try:
+                start_time = time.time()
+                graph = build_graph()
+                final_state_raw = graph.invoke(state.model_dump())
+
+                if isinstance(final_state_raw, dict):
+                    final_state = MARSState(
+                        user_query=final_state_raw.get('user_query', query),
+                        mode=final_state_raw.get('mode', mode),
+                        namespace=final_state_raw.get('namespace', namespace),
+                        chat_history=final_state_raw.get('chat_history', chat_history),
+                        intent=final_state_raw.get('intent'),
+                        answer_type=final_state_raw.get('answer_type'),
+                        retrieved_sources=final_state_raw.get('retrieved_sources', []),
+                        refined_context=final_state_raw.get('refined_context'),
+                        draft_answer=final_state_raw.get('draft_answer'),
+                        critic_status=final_state_raw.get('critic_status'),
+                        critic_reason=final_state_raw.get('critic_reason'),
+                        grounding_score=final_state_raw.get('grounding_score'),
+                        papers_metadata=final_state_raw.get('papers_metadata', []),
+                        agent_logs=final_state_raw.get('agent_logs', []),
+                    )
+                else:
+                    final_state = final_state_raw
+
+                elapsed = time.time() - start_time
+
+                # Stream agent logs first
+                agent_logs = []
+                if final_state.agent_logs:
+                    for log in final_state.agent_logs:
+                        log_data = {
+                            "agent": log.agent if hasattr(log, 'agent') else log.get('agent', ''),
+                            "status": log.status if hasattr(log, 'status') else log.get('status', ''),
+                            "icon": log.icon if hasattr(log, 'icon') else log.get('icon', ''),
+                            "duration_ms": log.duration_ms if hasattr(log, 'duration_ms') else log.get('duration_ms', 0),
+                            "thinking": log.thinking if hasattr(log, 'thinking') else log.get('thinking', ''),
+                            "output_preview": log.output_preview if hasattr(log, 'output_preview') else log.get('output_preview', ''),
+                        }
+                        agent_logs.append(log_data)
+                        yield f"data: {json.dumps({'type': 'agent', 'data': log_data})}\n\n"
+
+                # Stream the answer in word-sized chunks
+                answer = final_state.draft_answer or "No answer generated."
+                words = answer.split(' ')
+                buffer = ''
+                for i, word in enumerate(words):
+                    buffer += word + ' '
+                    # Send every 3 words for smooth streaming
+                    if (i + 1) % 3 == 0 or i == len(words) - 1:
+                        yield f"data: {json.dumps({'type': 'token', 'content': buffer})}\n\n"
+                        buffer = ''
+
+                # Send metadata at the end
+                sources = []
+                if final_state.retrieved_sources:
+                    sources = [
+                        {
+                            "content": s.content[:500] if hasattr(s, 'content') else str(s)[:500],
+                            "source": getattr(s, 'source', 'unknown'),
+                            "page": getattr(s, 'page', None),
+                            "url": getattr(s, 'url', None),
+                        }
+                        for s in final_state.retrieved_sources[:5]
+                    ]
+
+                yield f"data: {json.dumps({'type': 'done', 'metadata': {'mode': final_state.mode, 'intent': final_state.intent, 'grounding_score': final_state.grounding_score, 'critic_status': final_state.critic_status, 'elapsed_time': round(elapsed, 2), 'agent_logs': agent_logs, 'retrieved_sources': sources, 'papers_metadata': final_state.papers_metadata or []}})}\n\n"
+
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
+        response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+        response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'
+        return response
+
+
 class UploadView(APIView):
     """
     POST /api/upload/
@@ -297,7 +407,29 @@ class ExportView(APIView):
 
 
 class NamespaceView(APIView):
-    """DELETE /api/namespace/ — Clear a Pinecone namespace."""
+    """
+    GET /api/namespace/ — List all uploaded documents.
+    DELETE /api/namespace/ — Clear a Pinecone namespace.
+    """
+
+    def get(self, request):
+        from api.models import FAISSDocument
+        docs = FAISSDocument.objects.all().order_by('-created_at')
+        from django.utils.timezone import localtime
+        
+        data = [
+            {
+                "namespace": doc.namespace,
+                "filename": doc.filename,
+                "page_count": doc.page_count,
+                "chunk_count": doc.chunk_count,
+                "created_at": localtime(doc.created_at).isoformat(),
+                "expires_at": localtime(doc.expires_at).isoformat(),
+                "is_expired": doc.is_expired
+            }
+            for doc in docs
+        ]
+        return Response({"namespaces": data}, status=status.HTTP_200_OK)
 
     def delete(self, request):
         namespace = request.data.get('namespace', '')
@@ -402,3 +534,25 @@ class ExamOracleView(APIView):
             import traceback
             traceback.print_exc()
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class DocumentView(APIView):
+    """
+    GET /api/document/?namespace=<ns> 
+    Serves the locally stored PDF file natively to the frontend.
+    """
+    def get(self, request):
+        namespace = request.query_params.get('namespace', '')
+        if not namespace:
+            return Response({"error": "No namespace provided"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        from api.models import FAISSDocument
+        try:
+            doc = FAISSDocument.objects.get(namespace=namespace)
+            if doc.file_path:
+                import os
+                if os.path.exists(doc.file_path):
+                    return FileResponse(open(doc.file_path, 'rb'), content_type='application/pdf')
+            return Response({"error": "PDF file not found on server"}, status=status.HTTP_404_NOT_FOUND)
+        except FAISSDocument.DoesNotExist:
+            return Response({"error": "Namespace not found"}, status=status.HTTP_404_NOT_FOUND)

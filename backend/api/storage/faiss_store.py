@@ -14,11 +14,11 @@ from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_text_splitters import CharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 
-# ─────────────────────────────────────────────
-# Settings
-# ─────────────────────────────────────────────
 FAISS_INDEX_DIR = Path(os.getenv("FAISS_INDEX_DIR", "media/faiss_indexes"))
 FAISS_INDEX_DIR.mkdir(parents=True, exist_ok=True)
+
+UPLOADS_DIR = Path("media/uploads")
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
@@ -43,49 +43,149 @@ def _get_embeddings() -> HuggingFaceEmbeddings:
 # Build & Persist
 # ─────────────────────────────────────────────
 
+def _extract_text_ocr(pdf_path: str) -> list:
+    """Fallback OCR extractor using pdf2image and pytesseract in parallel."""
+    try:
+        from pdf2image import convert_from_path
+        import pytesseract
+        import concurrent.futures
+        from langchain_core.documents import Document
+    except ImportError:
+        print("[FAISS] Missing OCR dependencies (pdf2image/pytesseract). Cannot run OCR.")
+        return []
+
+    print("[FAISS] Converting PDF to images for OCR...")
+    import time
+    start = time.time()
+    images = convert_from_path(pdf_path, dpi=150)
+    print(f"[FAISS] Converted {len(images)} pages in {time.time()-start:.1f}s")
+
+    def ocr_page(args):
+        i, img = args
+        text = pytesseract.image_to_string(img)
+        # Return a LangChain Document
+        return Document(page_content=text, metadata={"source": pdf_path, "page": i})
+
+    print(f"[FAISS] Running parallel OCR on {len(images)} pages...")
+    start = time.time()
+    docs = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+        for doc in executor.map(ocr_page, enumerate(images)):
+            docs.append(doc)
+    
+    print(f"[FAISS] OCR completed in {time.time()-start:.1f}s")
+    return docs
+
 def ingest_pdf(file_obj, namespace: str) -> Dict[str, Any]:
     """
     Parse PDF, chunk, embed locally via sentence-transformers, and save FAISS index.
-    Returns metadata dict.
+    Handles files up to 200MB. Returns metadata dict.
     """
     import tempfile
+    import os
+    from langchain_community.document_loaders import PyMuPDFLoader
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-    # Save uploaded file to a temp path so PyPDFLoader can read it
+    # Save uploaded file to a temp path — handle both InMemory and Temporary uploads
     suffix = ".pdf"
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        for chunk in file_obj.chunks():
-            tmp.write(chunk)
-        tmp_path = tmp.name
-
+    tmp_path = None
     try:
-        # 1. Load
+        # For Django's TemporaryUploadedFile (large files), use its path directly
+        if hasattr(file_obj, 'temporary_file_path'):
+            tmp_path = file_obj.temporary_file_path()
+        else:
+            # For InMemoryUploadedFile (small files), write to temp file
+            fd, tmp_path = tempfile.mkstemp(suffix=suffix)
+            with os.fdopen(fd, 'wb') as tmp:
+                for chunk in file_obj.chunks(chunk_size=8192 * 1024):  # 8MB chunks
+                    tmp.write(chunk)
+        
+        file_size_mb = os.path.getsize(tmp_path) / (1024 * 1024)
+        print(f"[FAISS] Processing file: {getattr(file_obj, 'name', 'unknown.pdf')} ({file_size_mb:.1f} MB)")
+
+        # 1. Load PDF
         loader = PyMuPDFLoader(tmp_path)
         docs = loader.load()
+        print(f"[FAISS] PyMuPDF loaded {len(docs)} pages")
 
-        # 2. Chunk
-        splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=30, separator="\n")
+        # 2. Chunk — use RecursiveCharacterTextSplitter for better results on large docs
+        chunk_size = 1500 if len(docs) > 50 else 1000
+        chunk_overlap = 100 if len(docs) > 50 else 50
+
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            separators=["\n\n", "\n", ". ", " ", ""],
+            length_function=len,
+        )
         chunks = splitter.split_documents(docs)
 
-        valid_chunks = [c for c in chunks if len(c.page_content.strip()) > 50]
+        valid_chunks = [c for c in chunks if len(c.page_content.strip()) > 30]
+        
+        # --- OCR Fallback ---
         if not valid_chunks:
-            raise ValueError("No valid text found in document.")
+            print("[FAISS] No valid text found via PyMuPDF. Falling back to OCR...")
+            docs = _extract_text_ocr(tmp_path)
+            chunks = splitter.split_documents(docs)
+            valid_chunks = [c for c in chunks if len(c.page_content.strip()) > 30]
 
-        # 3. Embed & build FAISS
+            if not valid_chunks:
+                raise ValueError("No valid text found in document, even after OCR.")
+
+        print(f"[FAISS] Generated {len(valid_chunks)} text chunks (chunk_size={chunk_size})")
+
+        # 3. Embed & build FAISS — process in batches for large docs
         embeddings = _get_embeddings()
-        vectorstore = FAISS.from_documents(valid_chunks, embeddings)
+        
+        BATCH = 500
+        if len(valid_chunks) <= BATCH:
+            vectorstore = FAISS.from_documents(valid_chunks, embeddings)
+        else:
+            # Build in batches to avoid memory issues
+            vectorstore = FAISS.from_documents(valid_chunks[:BATCH], embeddings)
+            for i in range(BATCH, len(valid_chunks), BATCH):
+                batch = valid_chunks[i:i + BATCH]
+                batch_vs = FAISS.from_documents(batch, embeddings)
+                vectorstore.merge_from(batch_vs)
+                print(f"[FAISS] Indexed batch {i // BATCH + 1}/{(len(valid_chunks) + BATCH - 1) // BATCH}")
 
         # 4. Save to disk
         index_path = str(FAISS_INDEX_DIR / namespace)
         vectorstore.save_local(index_path)
-
         print(f"[FAISS] Saved index for namespace '{namespace}' → {index_path}")
+        
+        # 4.5 Save PDF permanently to media/uploads
+        import shutil
+        pdf_filename = f"{namespace}.pdf"
+        pdf_path = UPLOADS_DIR / pdf_filename
+        shutil.copy2(tmp_path, pdf_path)
+        print(f"[FAISS] Saved PDF copy to {pdf_path}")
 
-        return {
+        result = {
             "namespace": namespace,
             "pages": len(docs),
             "chunks": len(valid_chunks),
             "index_path": index_path,
         }
+
+        # 5. Save to Django model
+        try:
+            from api.models import FAISSDocument
+            FAISSDocument.objects.update_or_create(
+                namespace=namespace,
+                defaults={
+                    "filename": getattr(file_obj, 'name', 'unknown.pdf'),
+                    "page_count": len(docs),
+                    "chunk_count": len(valid_chunks),
+                    "index_path": index_path,
+                    "file_path": str(pdf_path),
+                }
+            )
+            print(f"[FAISS] Saved DB record for namespace '{namespace}'")
+        except Exception as db_err:
+            print(f"[FAISS] Warning: Could not save DB record: {db_err}")
+
+        return result
     finally:
         os.unlink(tmp_path)
 
@@ -123,31 +223,81 @@ def search_documents(namespace: str, query: str, k: int = 5) -> List[Dict[str, s
 # ─────────────────────────────────────────────
 
 def delete_namespace(namespace: str) -> bool:
-    """Delete FAISS index from disk."""
+    """Delete FAISS index, PDF file, and DB record."""
+    import shutil
+    
+    # 1. Delete index
     index_path = FAISS_INDEX_DIR / namespace
+    deleted = False
     if index_path.exists():
-        import shutil
         shutil.rmtree(str(index_path))
         print(f"[FAISS] Deleted index for namespace '{namespace}'")
-        return True
-    return False
+        deleted = True
+
+    # 2. Delete PDF file
+    pdf_path = UPLOADS_DIR / f"{namespace}.pdf"
+    if pdf_path.exists():
+        os.unlink(pdf_path)
+        print(f"[FAISS] Deleted PDF file for namespace '{namespace}'")
+
+    # 3. Delete DB record
+    try:
+        from api.models import FAISSDocument
+        FAISSDocument.objects.filter(namespace=namespace).delete()
+    except Exception:
+        pass
+
+    return deleted
 
 
 def cleanup_old_indexes(max_age_hours: int = 48):
     """
-    Delete all FAISS index directories older than max_age_hours.
-    Called by scheduler every 48 hours.
+    Delete all expired FAISS indexes (both on disk and in DB).
+    Called periodically by background thread.
     """
-    now = datetime.utcnow()
+    from django.utils import timezone
+    import shutil
+
     deleted = []
+
+    # DB-based cleanup (authoritative)
+    try:
+        from api.models import FAISSDocument
+        expired = FAISSDocument.objects.filter(expires_at__lt=timezone.now())
+        for doc in expired:
+            idx_path = Path(doc.index_path)
+            if idx_path.exists():
+                shutil.rmtree(str(idx_path))
+                
+            if doc.file_path:
+                file_path = Path(doc.file_path)
+                if file_path.exists():
+                    os.unlink(file_path)
+                    
+            deleted.append(doc.namespace)
+        expired.delete()
+    except Exception as e:
+        print(f"[FAISS] DB cleanup error: {e}")
+
+    # Filesystem fallback cleanup for indexes
+    now = datetime.utcnow()
     for d in FAISS_INDEX_DIR.iterdir():
         if d.is_dir():
             mtime = datetime.utcfromtimestamp(d.stat().st_mtime)
             age = now - mtime
             if age > timedelta(hours=max_age_hours):
-                import shutil
                 shutil.rmtree(str(d))
-                deleted.append(d.name)
+                if d.name not in deleted:
+                    deleted.append(d.name)
+                    
+    # Filesystem fallback cleanup for PDFs
+    for f in UPLOADS_DIR.iterdir():
+        if f.is_file() and f.suffix == '.pdf':
+            mtime = datetime.utcfromtimestamp(f.stat().st_mtime)
+            age = now - mtime
+            if age > timedelta(hours=max_age_hours):
+                os.unlink(f)
+
     if deleted:
         print(f"[FAISS] Auto-cleanup: removed {len(deleted)} old indexes → {deleted}")
     return deleted

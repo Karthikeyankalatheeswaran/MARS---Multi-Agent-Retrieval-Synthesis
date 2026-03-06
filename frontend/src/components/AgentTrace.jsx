@@ -10,22 +10,17 @@ const AGENT_META = {
 
 function parseAgentName(name = '') {
   const key = name.toLowerCase().replace(/\s+/g, '_');
-  return AGENT_META[key] || { label: name, icon: '🤖', color: 'var(--text-secondary)' };
+  return AGENT_META[key] || { label: name, icon: '🤖', color: '#64748b' };
 }
 
 export default function AgentTrace({ logs = [] }) {
   if (!logs || logs.length === 0) return null;
 
   return (
-    <div
-      className="mt-2 p-3 rounded-xl border text-xs animate-slide-right"
-      style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border)' }}
-    >
+    <div className="mt-2 p-3 rounded-xl border text-xs bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700">
       <div className="flex items-center gap-1.5 mb-3">
-        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--text-muted)' }}>
-          <path d="M13 10V3L4 14h7v7l9-11h-7z" />
-        </svg>
-        <span className="font-semibold tracking-wide uppercase text-[10px]" style={{ color: 'var(--text-muted)' }}>
+        <span className="material-symbols-outlined text-xs text-slate-400">bolt</span>
+        <span className="font-semibold tracking-wide uppercase text-[10px] text-slate-400">
           Agent Execution Trace
         </span>
       </div>
@@ -46,14 +41,14 @@ export default function AgentTrace({ logs = [] }) {
                 >
                   {icon}
                 </div>
-                {!isLast && <div style={{ width: 1, flex: 1, background: 'var(--border)', minHeight: 8, margin: '2px 0' }} />}
+                {!isLast && <div className="w-px flex-1 bg-slate-200 dark:bg-slate-700" style={{ minHeight: 8, margin: '2px 0' }} />}
               </div>
 
               {/* Content */}
               <div className="pb-3 flex-1 min-w-0">
                 <div className="font-semibold mb-0.5" style={{ color }}>{label}</div>
                 {log.message && (
-                  <div style={{ color: 'var(--text-secondary)' }} className="leading-relaxed">
+                  <div className="text-slate-500 dark:text-slate-400 leading-relaxed">
                     {log.message}
                   </div>
                 )}
@@ -63,10 +58,9 @@ export default function AgentTrace({ logs = [] }) {
                       typeof v === 'string' || typeof v === 'number' ? (
                         <span
                           key={k}
-                          className="px-1.5 py-0.5 rounded text-[10px]"
-                          style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}
+                          className="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-400"
                         >
-                          {k}: <span style={{ color: 'var(--text-secondary)' }}>{String(v)}</span>
+                          {k}: <span className="text-slate-600 dark:text-slate-300">{String(v)}</span>
                         </span>
                       ) : null
                     ))}

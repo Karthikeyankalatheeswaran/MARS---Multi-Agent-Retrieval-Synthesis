@@ -91,9 +91,12 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# File upload settings
+# File upload settings — 200MB max, files > 2.5MB go to disk
 FILE_UPLOAD_MAX_MEMORY_SIZE = 209715200  # 200MB
-DATA_UPLOAD_MAX_MEMORY_SIZE = 209715200
+DATA_UPLOAD_MAX_MEMORY_SIZE = 209715200  # 200MB
+FILE_UPLOAD_HANDLERS = [
+    'django.core.files.uploadhandler.TemporaryFileUploadHandler',
+]
 
 # Transformers environment
 os.environ["TRANSFORMERS_NO_TF"] = "1"

@@ -6,7 +6,7 @@ from api.core.llms import CRITIC_LLM
 
 class CriticAgent:
     def run(self, state: MARSState) -> MARSState:
-        """Validates grounding for student mode answers"""
+        """Validates grounding for student mode answers — rejects hallucination"""
         start = time.time()
 
         if state.mode == "research":
@@ -44,14 +44,13 @@ class CriticAgent:
             ))
             return state
 
-        prompt = f"""
-You are validating if a student's answer is grounded in textbook content.
+        prompt = f"""You are validating if an AI-generated answer is grounded in textbook content.
 
 Textbook Content:
-{state.refined_context[:2000]}
+{state.refined_context[:3000]}
 
-Student Answer:
-{state.draft_answer}
+AI-Generated Answer:
+{state.draft_answer[:2000]}
 
 Evaluate:
 1. Is the answer supported by the textbook? (yes/no)
@@ -59,8 +58,7 @@ Evaluate:
 3. Brief reason (one sentence)
 
 Respond ONLY with valid JSON:
-{{"status": "approved" or "rejected", "grounding": number, "reason": "brief reason"}}
-"""
+{{"status": "approved" or "rejected", "grounding": number, "reason": "brief reason"}}"""
 
         try:
             response = CRITIC_LLM.invoke(prompt).content
@@ -77,11 +75,14 @@ Respond ONLY with valid JSON:
             state.grounding_score = float(result.get("grounding", 85))
             state.critic_reason = result.get("reason", "Evaluated")
 
-            if state.grounding_score < 60:
+            # Task 4: Raised threshold from 60% to 70%
+            if state.grounding_score < 70:
                 state.critic_status = "rejected"
                 state.draft_answer = (
-                    "❌ **Not found in material.**\n\n"
-                    "The answer cannot be reliably determined from your uploaded document."
+                    "⚠️ **Low Grounding Score** — The answer could not be fully verified against your uploaded document.\n\n"
+                    "**What I found:**\n"
+                    f"> {state.refined_context[:300]}...\n\n"
+                    "Please try rephrasing your question or ensure the topic is covered in your uploaded material."
                 )
 
             elapsed = int((time.time() - start) * 1000)
@@ -89,7 +90,7 @@ Respond ONLY with valid JSON:
                 agent="Critic", icon="gavel", status="completed",
                 duration_ms=elapsed,
                 thinking=f"Evaluated grounding: {state.grounding_score}% — {state.critic_reason}",
-                output_preview=f"{'Approved' if state.critic_status == 'approved' else 'Rejected'} {state.critic_status}: {state.grounding_score}% grounded ({elapsed}ms)",
+                output_preview=f"{'✅ Approved' if state.critic_status == 'approved' else '❌ Rejected'}: {state.grounding_score}% grounded ({elapsed}ms)",
                 details={
                     "grounding_score": state.grounding_score,
                     "status": state.critic_status,

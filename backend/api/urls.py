@@ -1,12 +1,18 @@
 from django.urls import path
-from api.views import ChatView, UploadView, ExportView, NamespaceView, StatusView, AgentsView, StudyCardsView, ExamOracleView
+from api.views import (
+    ChatView, StreamingChatView, UploadView, ExportView, 
+    NamespaceView, StatusView, AgentsView, StudyCardsView, 
+    ExamOracleView, DocumentView
+)
 from api.studio_views import (
     StudioStudyGuideView, StudioBriefingView,
-    StudioFlashcardsView, StudioKeyTopicsView, StudioAudioView
+    StudioFlashcardsView, StudioKeyTopicsView, StudioAudioView,
+    StudioFAQView
 )
 
 urlpatterns = [
     path('chat/', ChatView.as_view(), name='chat'),
+    path('chat/stream/', StreamingChatView.as_view(), name='chat-stream'),
     path('upload/', UploadView.as_view(), name='upload'),
     path('export/', ExportView.as_view(), name='export'),
     path('namespace/', NamespaceView.as_view(), name='namespace'),
@@ -20,4 +26,7 @@ urlpatterns = [
     path('studio/flashcards/', StudioFlashcardsView.as_view(), name='studio-flashcards'),
     path('studio/key-topics/', StudioKeyTopicsView.as_view(), name='studio-key-topics'),
     path('studio/audio/', StudioAudioView.as_view(), name='studio-audio'),
+    path('studio/faq/', StudioFAQView.as_view(), name='studio-faq'),
+    path('document/', DocumentView.as_view(), name='document'),
 ]
+

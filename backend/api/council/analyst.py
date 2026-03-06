@@ -5,7 +5,7 @@ from api.core.llms import ANALYST_LLM
 
 class AnalystAgent:
     def run(self, state: MARSState) -> MARSState:
-        """Organizes retrieved content based on conversation context"""
+        """Organizes retrieved content, preserving page citations for structured output"""
         start = time.time()
 
         if not state.retrieved_sources:
@@ -20,8 +20,9 @@ class AnalystAgent:
         if state.intent in ["greeting", "feedback"]:
             return state
 
+        # Build context WITH page number metadata preserved
         context = "\n\n---\n\n".join(
-            f"Source {i+1}:\n{s.content}"
+            f"Source {i+1} (Page {s.page if s.page is not None else 'N/A'}):\n{s.content}"
             for i, s in enumerate(state.retrieved_sources)
         )
 
@@ -32,8 +33,7 @@ class AnalystAgent:
                 for m in state.chat_history[-4:]
             )
 
-        prompt = f"""
-You are analyzing source material for a question-answering system.
+        prompt = f"""You are analyzing source material for a question-answering system.
 
 Recent Conversation:
 {recent_history if recent_history else "No prior conversation"}
@@ -45,17 +45,18 @@ Current Question:
 {state.user_query}
 
 Task:
-Extract and organize the most relevant information that directly answers the question.
-Preserve important details, definitions, examples, and context.
-Do NOT add external knowledge.
-Maximum 800 words.
+1. Extract and organize the most relevant information that directly answers the question.
+2. PRESERVE all page number references — include [Page X] after every key fact.
+3. Keep important details, definitions, examples, and context.
+4. Do NOT add external knowledge — only use what is in the sources.
+5. Maximum 1000 words.
 
 Analysis:
 """
 
         try:
             response = ANALYST_LLM.invoke(prompt)
-            state.refined_context = response.content.strip()[:6000]
+            state.refined_context = response.content.strip()[:8000]
 
             elapsed = int((time.time() - start) * 1000)
             state.agent_logs.append(AgentLog(
@@ -72,12 +73,12 @@ Analysis:
         except Exception as e:
             elapsed = int((time.time() - start) * 1000)
             print(f"[Analyst Error] {e}")
-            state.refined_context = context[:6000]
+            state.refined_context = context[:8000]
             state.agent_logs.append(AgentLog(
                 agent="Analyst", icon="assessment", status="error",
                 duration_ms=elapsed,
                 thinking=f"LLM analysis failed: {str(e)}. Falling back to raw context.",
-                output_preview=f"⚠️ Fallback: Using raw sources ({len(context[:6000])} chars)",
+                output_preview=f"Fallback: Using raw sources ({len(context[:8000])} chars)",
                 details={"error": str(e)}
             ))
 

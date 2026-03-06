@@ -1,16 +1,16 @@
 import React from 'react';
 
-export default function Sidebar({ open, onClose, mode, onModeChange, onClear, messages, isMobile }) {
+export default function Sidebar({ open, onClose, mode, onModeChange, onClear, messages, isMobile, chatHistory = [], onSelectChat }) {
   const currentChat = messages.length > 0 
-    ? messages[0]?.content?.slice(0, 30) + (messages[0]?.content?.length > 30 ? '...' : '')
-    : 'New Conversation';
+    ? messages[0]?.content?.slice(0, 35) + (messages[0]?.content?.length > 35 ? '...' : '')
+    : null;
 
   return (
     <>
       <aside 
-        className={`w-72 flex-shrink-0 flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark/50 transform transition-transform duration-300 ease-in-out fixed md:relative z-30 h-full ${open ? 'translate-x-0' : '-translate-x-full md:translate-x-0 md:w-0'}`}
+        className={`w-72 flex-shrink-0 flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-bgdark/50 transform transition-transform duration-300 ease-in-out fixed md:relative z-30 h-full ${open ? 'translate-x-0' : '-translate-x-full md:translate-x-0 md:w-0'}`}
       >
-        <div className="p-4 flex-1">
+        <div className="p-4 flex-1 overflow-y-auto">
           {/* Logo */}
           <div className="flex items-center gap-3 px-2 mb-6">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white">
@@ -30,56 +30,61 @@ export default function Sidebar({ open, onClose, mode, onModeChange, onClear, me
             className="w-full flex items-center gap-3 bg-primary hover:bg-primary/90 text-white rounded-xl py-3 px-4 transition-all shadow-lg shadow-primary/20 mb-6"
           >
             <span className="material-symbols-outlined">add</span>
-            <span className="font-medium text-sm">New Research Chat</span>
+            <span className="font-medium text-sm">New Chat</span>
           </button>
 
-          {/* Search */}
-          <div className="relative mb-6">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
-            <input 
-              className="w-full bg-slate-100 dark:bg-slate-800/50 border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/50 placeholder:text-slate-400 outline-none transition-all" 
-              placeholder="Search conversations..." 
-              type="text"
-            />
-          </div>
-
-          {/* History Sections */}
+          {/* Chat History Stack */}
           <div className="space-y-1">
-            <p className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">History</p>
+            {/* Today */}
+            {currentChat && (
+              <>
+                <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Today</p>
+                <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/5 dark:bg-primary/10 border border-primary/10 group cursor-pointer">
+                  <span className="material-symbols-outlined text-primary text-lg">chat_bubble</span>
+                  <span className="text-sm font-medium truncate text-slate-800 dark:text-slate-200">{currentChat}</span>
+                </div>
+              </>
+            )}
             
-            {/* Active Session */}
-            <div className="flex items-center gap-3 px-3 py-2 rounded-lg sidebar-item-active group cursor-pointer">
-              <span className="material-symbols-outlined text-lg">chat_bubble</span>
-              <span className="text-sm font-medium truncate">{currentChat}</span>
-            </div>
+            {/* Previous Chats from History */}
+            {chatHistory.length > 0 && (
+              <>
+                <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4">Previous</p>
+                {chatHistory.map((chat, i) => (
+                  <div 
+                    key={i}
+                    onClick={() => onSelectChat && onSelectChat(chat)}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 group cursor-pointer transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-lg opacity-60">history</span>
+                    <span className="text-sm font-medium truncate">{chat.title || chat.preview}</span>
+                  </div>
+                ))}
+              </>
+            )}
 
-            {/* Static Examples from Stitch Screen */}
-            <div className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 group cursor-pointer transition-colors">
-              <span className="material-symbols-outlined text-lg">folder</span>
-              <span className="text-sm font-medium truncate">Data Structures Lab</span>
-            </div>
-
-            <div className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 group cursor-pointer transition-colors">
-              <span className="material-symbols-outlined text-lg">history</span>
-              <span className="text-sm font-medium truncate">Literature Review</span>
-            </div>
+            {/* Empty state */}
+            {!currentChat && chatHistory.length === 0 && (
+              <div className="flex flex-col items-center justify-center text-center px-4 py-12">
+                <span className="material-symbols-outlined text-3xl text-slate-300 dark:text-slate-600 mb-2">forum</span>
+                <p className="text-xs text-slate-400 dark:text-slate-500">No conversations yet</p>
+                <p className="text-[10px] text-slate-400/60">Start a new chat to begin</p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="mt-auto border-t border-slate-200 dark:border-slate-800 p-4 space-y-1">
-          <div className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 cursor-pointer transition-colors">
-            <span className="material-symbols-outlined text-lg">settings</span>
-            <span className="text-sm font-medium">Settings</span>
-          </div>
-          
-          <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-slate-100 dark:bg-slate-800/50 cursor-pointer group hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
-            <div className="size-8 rounded-full bg-gradient-to-tr from-primary to-blue-400 flex items-center justify-center text-white overflow-hidden shadow-sm">
-              <span className="text-xs font-bold">AR</span>
-            </div>
+        {/* Footer — Mode indicator only, no fake profile */}
+        <div className="mt-auto border-t border-slate-200 dark:border-slate-800 p-4">
+          <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+            <div className={`w-2 h-2 rounded-full ${mode === 'student' ? 'bg-green-500' : 'bg-blue-500'}`} />
             <div className="flex flex-col">
-              <p className="text-xs font-bold text-slate-900 dark:text-slate-100">Alex Rivers</p>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400">Premium Scholar</p>
+              <p className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                {mode === 'student' ? '📚 Student Mode' : '🔬 Research Mode'}
+              </p>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                {mode === 'student' ? 'Document-grounded answers' : 'Multi-source research'}
+              </p>
             </div>
           </div>
         </div>

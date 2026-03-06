@@ -1,6 +1,6 @@
 import time
 from api.core.state import MARSState, AgentLog
-from api.core.llms import SCRIBE_LLM
+from api.core.llms import SCRIBE_LLM, RESEARCH_LLM
 
 
 class ScribeAgent:
@@ -14,13 +14,14 @@ class ScribeAgent:
                 state.draft_answer = (
                     "👋 Hello! I'm your **Student Study Assistant**.\n\n"
                     "I help you learn from your textbooks and notes. "
-                    "Upload a PDF and ask me questions!"
+                    "Upload a PDF and ask me questions!\n\n"
+                    "💡 **Tip:** Try asking me to *predict exam questions* by typing a subject code like `CS3401`."
                 )
             else:
                 state.draft_answer = (
                     "👋 Hello! I'm your **Research Assistant**.\n\n"
-                    "I can help you explore academic literature, compare papers, "
-                    "and discover research insights. Ask me about any research topic!"
+                    "I can help you explore academic literature across **arXiv**, **Google Scholar**, and the **web**. "
+                    "Ask me about any research topic!"
                 )
             state.agent_logs.append(AgentLog(
                 agent="Scribe", icon="edit", status="completed",
@@ -77,40 +78,75 @@ class ScribeAgent:
                 for m in state.chat_history[-6:]
             )
 
-        # ===== RESEARCH MODE =====
+        # ===== RESEARCH MODE (Task 3: Improved alignment) =====
         if state.mode == "research":
             source_references = ""
+            source_labels = []
             for i, src in enumerate(state.retrieved_sources, 1):
-                source_references += f"\n[{i}] {src.content[:1500]}...\n"
+                source_type = "Source"
+                if hasattr(src, 'source'):
+                    if src.source == "arxiv":
+                        source_type = "arXiv Paper"
+                    elif src.source == "google_scholar":
+                        source_type = "Scholar Paper"
+                    elif src.source == "web":
+                        source_type = "Web Source"
+                source_references += f"\n[{i}] ({source_type}) {src.content[:2000]}...\n"
+                source_labels.append(source_type)
 
-            prompt = f"""
-You are an advanced Research Assistant, designed to produce state-of-the-art, academic-quality reports.
+            prompt = f"""You are MARS Research Assistant. Your task is to provide a focused, well-structured research analysis.
 
-{"Conversation History:" if conversation_context else ""}
-{conversation_context}
+CRITICAL RULES:
+- Focus STRICTLY on what the user asked. Do NOT provide general background unless explicitly asked.
+- Every major claim MUST have an inline citation [1], [2], etc.
+- If sources conflict, explicitly state the disagreement.
+- Use rich Markdown formatting: **bold** for key terms, bullet points with proper spacing, > blockquotes for important definitions, --- horizontal rules between sections.
 
-Retrieved Research Content:
+FORMATTING RULES:
+- Use blank lines between every section, subsection, and bullet point group
+- Each bullet point should start on its own line with a dash (-) or number
+- Use nested bullet points (indented with spaces) for sub-details
+- Wrap important conclusions in > blockquotes
+- Add horizontal rules (---) between major sections
+
+{("Conversation History:" + chr(10) + conversation_context) if conversation_context else ""}
+
+Retrieved Sources ({len(state.retrieved_sources)} documents from arXiv, Google Scholar, and Web):
 {source_references}
 
-Current Question:
+User's Question:
 {state.user_query}
 
-Instructions:
-1. **Structure**: Organize your response using clear Markdown headers (##, ###).
-   - **Executive Summary**: A concise 2-3 sentence overview.
-   - **Key Findings**: Bullet points distinguishing between consensus and debate.
-   - **Deep Dive**: Detailed synthesis of the retrieved content.
-   - **Methodology (if applicable)**: Compare approaches found in the papers.
-2. **Citations**: STRICTLY use inline citations [1], [2] to reference the provided content.
-3. **Tone**: Objective, professional, and analytical.
-4. **Formatting**: Use bolding for key terms, tables for comparisons if relevant, and distinct paragraphs.
-5. **Constraint**: Do NOT include a "References" section at the end; this is handled automatically.
+Structure your response EXACTLY like this:
 
-Answer:
-"""
+## 📌 Summary
+
+2-3 sentence direct answer to the question with inline citations.
+
+---
+
+## 🔍 Key Findings
+
+- **Finding 1** — Description with [citation number]
+- **Finding 2** — Description with [citation number]
+(Use 5-7 bullet points, each on its own line with spacing)
+
+---
+
+## 📊 Detailed Analysis
+
+Organized analysis addressing the user's specific question. Use ### subheadings for clarity.
+Use bullet points for lists, numbered steps for processes, and **bold** for key terms.
+
+---
+
+## ⚖️ Methodology Comparison
+(Only if applicable) Compare approaches found across sources using a comparison format.
+
+Do NOT add a References section — it is automatically appended."""
 
             try:
-                response = SCRIBE_LLM.invoke(prompt)
+                response = RESEARCH_LLM.invoke(prompt)
                 answer = response.content
 
                 if state.papers_metadata or state.retrieved_sources:
@@ -123,8 +159,17 @@ Answer:
                             authors = paper.get('authors', 'Unknown Authors')
                             year = paper.get('year', 'N/A')
                             url = paper.get('url', '')
+                            source_type = paper.get('source_type', 'research')
 
-                            refs += f"**[{i}]** "
+                            type_emoji = "📄"
+                            if source_type == "arxiv":
+                                type_emoji = "🔬"
+                            elif source_type == "google_scholar":
+                                type_emoji = "🎓"
+                            elif source_type == "web":
+                                type_emoji = "🌐"
+
+                            refs += f"{type_emoji} **[{i}]** "
                             if url:
                                 refs += f"[{title}]({url})\n\n"
                             else:
@@ -137,7 +182,7 @@ Answer:
                         if i in cited_sources:
                             continue
                         if src.source == "web" and src.url:
-                            refs += f"**[{i}]** [{src.url}]({src.url})\n\n"
+                            refs += f"🌐 **[{i}]** [{src.url}]({src.url})\n\n"
                             refs += f"   *Web Source*\n\n"
 
                     answer += refs
@@ -171,31 +216,70 @@ Answer:
 
             return state
 
-        # ===== STUDENT MODE =====
-        prompt = f"""
-You are an expert University Tutor/Professor. Your goal is to explain complex concepts from the provided textbook material with absolute clarity and structure.
+        # ===== STUDENT MODE (Task 4: Anti-hallucination, structured output) =====
+        prompt = f"""You are an expert University Professor answering a student's question STRICTLY from the provided textbook material.
 
-{"Recent Conversation:" if conversation_context else ""}
-{conversation_context}
+CRITICAL RULES (MUST FOLLOW):
+1. Answer ONLY based on the provided textbook content. NEVER add external knowledge.
+2. If the textbook does NOT cover the topic, say: "This topic is not covered in the uploaded material."
+3. After each major claim, add a page citation like [Page X] where X is the source page number.
+4. Use the EXACT section headers shown below.
 
-Textbook Content:
+FORMATTING RULES (MUST FOLLOW):
+- Use **bold** for ALL vocabulary terms and key phrases
+- Use > blockquotes for formal definitions
+- Use bullet points (-) with blank lines between them for readability
+- Use numbered lists (1. 2. 3.) for sequential steps or processes
+- Add blank lines between every section and paragraph
+- Use --- horizontal rules between major sections
+- Use nested bullet points for sub-details
+
+{("Recent Conversation:" + chr(10) + conversation_context) if conversation_context else ""}
+
+Textbook Content (with page numbers):
 {state.refined_context}
 
 Student Question:
 {state.user_query}
 
-Instructions:
-1. **Goal**: Explain the concept step-by-step, ensuring deep understanding.
-2. **Structure**:
-   - **## Core Concept**: A direct answer/definition.
-   - **## Detailed Explanation**: Break down the "How" and "Why".
-   - **## Examples**: Use concrete examples from the text (or analogous ones) to illustrate.
-   - **## Key Takeaways**: A bulleted summary of what to remember.
-3. **formatting**: Use **bold** for vocabulary terms, list items for steps, and blockquotes for key definitions.
-4. **Constraint**: Answer ONLY based on the provided textbook content.
+REQUIRED FORMAT:
 
-Answer:
-"""
+## 📖 Core Concept
+
+A direct, concise answer or definition in 2-3 sentences. Include [Page X] citations.
+
+> **Key Definition:** Quote the most important definition directly from the text.
+
+---
+
+## 🔎 Detailed Explanation
+
+Break down the "How" and "Why" step-by-step:
+
+1. **First step** — explanation [Page X]
+2. **Second step** — explanation [Page X]
+3. **Third step** — explanation [Page X]
+
+Add bullet points for additional details:
+
+- **Point 1** — Detail
+- **Point 2** — Detail
+
+---
+
+## 💡 Examples
+
+Concrete examples from the text. If the text provides examples, use those. If not, create analogous ones and mark them as "[Illustrative example]".
+
+---
+
+## ✅ Key Takeaways
+
+- **Takeaway 1** — One sentence summary
+- **Takeaway 2** — One sentence summary
+- **Takeaway 3** — One sentence summary
+
+(3-5 bullet points, each starting with a bold keyword)"""
 
         try:
             response = SCRIBE_LLM.invoke(prompt)
@@ -218,10 +302,10 @@ Answer:
             print(f"[Scribe Error] {e}")
             state.draft_answer = f"Error generating response: {str(e)}"
             state.agent_logs.append(AgentLog(
-                agent="Scribe", icon="✍️", status="error",
+                agent="Scribe", icon="edit", status="error",
                 duration_ms=elapsed,
                 thinking=f"LLM invocation failed: {str(e)}",
-                output_preview=f"⚠️ Error: {str(e)[:100]}",
+                output_preview=f"Error: {str(e)[:100]}",
                 details={"error": str(e)}
             ))
 

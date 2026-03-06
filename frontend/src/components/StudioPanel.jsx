@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { generateStudyCards } from '../api/client';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -13,30 +14,152 @@ async function callStudio(endpoint, payload) {
   return res.json();
 }
 
-function StudioCard({ emoji, title, description, onClick, loading }) {
+/* ────────────────────────────────────────────── */
+/* Flashcard Component (NotebookLM-style flip)   */
+/* ────────────────────────────────────────────── */
+function FlashcardDeck({ flashcards }) {
+  const [idx, setIdx] = useState(0);
+  const [flipped, setFlipped] = useState(false);
+  const card = flashcards[idx];
+
+  const diffColors = {
+    easy: 'bg-green-500/10 text-green-500 border-green-500/20',
+    medium: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+    hard: 'bg-red-500/10 text-red-500 border-red-500/20',
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Progress */}
+      <div className="flex items-center justify-between text-xs text-slate-400">
+        <span>{idx + 1} / {flashcards.length}</span>
+        {card.difficulty && (
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${diffColors[card.difficulty] || ''}`}>
+            {card.difficulty}
+          </span>
+        )}
+      </div>
+
+      {/* Card */}
+      <div
+        onClick={() => setFlipped(!flipped)}
+        className="min-h-[140px] rounded-xl border border-slate-200 dark:border-slate-700 p-5 cursor-pointer transition-all hover:shadow-lg hover:border-primary/30 flex flex-col justify-center bg-white dark:bg-slate-800/60"
+      >
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+          {flipped ? '💡 Answer' : '❓ Question'}
+        </p>
+        <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
+          {flipped ? card.answer : card.question}
+        </p>
+      </div>
+      <p className="text-[10px] text-center text-slate-400">Click card to flip</p>
+
+      {/* Navigation */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => { setIdx(Math.max(0, idx - 1)); setFlipped(false); }}
+          disabled={idx === 0}
+          className="flex-1 py-2 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
+        >
+          ← Previous
+        </button>
+        <button
+          onClick={() => { setIdx(Math.min(flashcards.length - 1, idx + 1)); setFlipped(false); }}
+          disabled={idx === flashcards.length - 1}
+          className="flex-1 py-2 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 transition-colors"
+        >
+          Next →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────── */
+/* FAQ Accordion Component                        */
+/* ────────────────────────────────────────────── */
+function FAQList({ faqs }) {
+  const [openIdx, setOpenIdx] = useState(null);
+  return (
+    <div className="space-y-2">
+      {faqs.map((faq, i) => (
+        <div key={i} className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <button
+            onClick={() => setOpenIdx(openIdx === i ? null : i)}
+            className="w-full text-left px-3 py-2.5 flex items-start gap-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+          >
+            <span className="text-primary text-sm font-bold shrink-0 mt-0.5">Q{i + 1}</span>
+            <span className="text-xs font-medium text-slate-800 dark:text-slate-200 leading-relaxed">{faq.question}</span>
+            <span className={`material-symbols-outlined text-sm text-slate-400 shrink-0 ml-auto transition-transform ${openIdx === i ? 'rotate-180' : ''}`}>
+              expand_more
+            </span>
+          </button>
+          {openIdx === i && (
+            <div className="px-3 pb-3 pt-0 ml-6">
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{faq.answer}</p>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────── */
+/* Audio Player Component (NotebookLM-style)     */
+/* ────────────────────────────────────────────── */
+function AudioPlayer({ audioBase64, text, format }) {
+  return (
+    <div className="space-y-3">
+      {audioBase64 && (
+        <audio
+          controls
+          className="w-full rounded-lg"
+          src={`data:${format || 'audio/flac'};base64,${audioBase64}`}
+        />
+      )}
+      {text && (
+        <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">📝 Transcript</p>
+          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{text}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────── */
+/* Studio Card Button                             */
+/* ────────────────────────────────────────────── */
+function StudioCard({ icon, title, description, onClick, loading, active }) {
   return (
     <button
       onClick={onClick}
       disabled={loading}
-      className="w-full text-left flex items-start gap-3 p-3 rounded-xl border transition-all hover:opacity-90 active:scale-98"
-      style={{
-        background: 'var(--bg-card)',
-        borderColor: 'var(--border)',
-        opacity: loading ? 0.6 : 1,
-      }}
+      className={`w-full text-left flex items-start gap-3 p-3 rounded-xl border transition-all hover:border-primary/30 hover:shadow-sm active:scale-[0.98] ${
+        active
+          ? 'border-primary/50 bg-primary/5 dark:bg-primary/10'
+          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/40'
+      } ${loading ? 'opacity-60 pointer-events-none' : ''}`}
     >
-      <span className="text-xl shrink-0">{emoji}</span>
-      <div>
-        <div className="text-xs font-semibold mb-0.5" style={{ color: 'var(--text-primary)' }}>{title}</div>
-        <div className="text-[10px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{description}</div>
+      <span className="text-xl shrink-0">{icon}</span>
+      <div className="min-w-0">
+        <div className="text-xs font-semibold mb-0.5 text-slate-800 dark:text-slate-200">{title}</div>
+        <div className="text-[10px] leading-relaxed text-slate-500 dark:text-slate-400">{description}</div>
       </div>
+      {loading && (
+        <div className="w-4 h-4 border-2 rounded-full animate-spin border-t-transparent border-primary shrink-0 ml-auto mt-1" />
+      )}
     </button>
   );
 }
 
+/* ────────────────────────────────────────────── */
+/* Main Studio Panel                              */
+/* ────────────────────────────────────────────── */
 export default function StudioPanel({ messages, uploadedFile, mode, lastResponse, onClose }) {
   const [result, setResult] = useState(null);
-  const [resultTitle, setResultTitle] = useState('');
+  const [resultType, setResultType] = useState('');
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState('');
 
@@ -44,14 +167,14 @@ export default function StudioPanel({ messages, uploadedFile, mode, lastResponse
   const context = lastAssistant?.content || '';
   const hasContent = !!context;
 
-  const run = async (key, title, endpoint, payload) => {
+  const run = async (key, endpoint, payload) => {
     if (!hasContent && !uploadedFile) {
       setError('Start a conversation first to generate content.'); return;
     }
-    setLoading(key); setError('');
+    setLoading(key); setError(''); setResult(null);
     try {
       const data = await callStudio(endpoint, payload);
-      setResultTitle(title);
+      setResultType(key);
       setResult(data);
     } catch (e) {
       setError(e.message || 'Something went wrong.');
@@ -62,146 +185,168 @@ export default function StudioPanel({ messages, uploadedFile, mode, lastResponse
 
   const actions = [
     {
-      key: 'study_guide', emoji: '📖', title: 'Study Guide',
+      key: 'study_guide', icon: '📖', title: 'Study Guide',
       description: 'Structure key concepts into a clear outline',
-      action: () => run('study_guide', 'Study Guide', '/studio/study-guide/', { context }),
+      action: () => run('study_guide', '/studio/study-guide/', { context }),
     },
     {
-      key: 'briefing', emoji: '📋', title: 'Briefing Document',
-      description: 'Executive summary of the retrieved content',
-      action: () => run('briefing', 'Briefing Document', '/studio/briefing/', { context }),
+      key: 'briefing', icon: '📋', title: 'Briefing Document',
+      description: 'Executive summary with key takeaways',
+      action: () => run('briefing', '/studio/briefing/', { context }),
     },
     {
-      key: 'flashcards', emoji: '🃏', title: 'Flashcards',
-      description: 'Auto-generate Q&A pairs for revision',
-      action: () => run('flashcards', 'Flashcards', '/studio/flashcards/', { context }),
+      key: 'flashcards', icon: '🃏', title: 'Flashcards',
+      description: 'Auto-generate Q&A cards for revision',
+      action: () => run('flashcards', '/studio/flashcards/', { context }),
     },
     {
-      key: 'key_topics', emoji: '🏷️', title: 'Key Topics',
-      description: 'Extract the core topics from this session',
-      action: () => run('key_topics', 'Key Topics', '/studio/key-topics/', { context }),
+      key: 'faq', icon: '❓', title: 'FAQ',
+      description: 'Generate frequently asked questions',
+      action: () => run('faq', '/studio/faq/', { context }),
     },
     {
-      key: 'audio', emoji: '🎧', title: 'Audio Overview',
-      description: 'Listen to a spoken summary (HuggingFace TTS)',
-      action: () => run('audio', 'Audio Overview', '/studio/audio/', { context }),
+      key: 'key_topics', icon: '🏷️', title: 'Key Topics',
+      description: 'Extract core topics and entities',
+      action: () => run('key_topics', '/studio/key-topics/', { context }),
+    },
+    {
+      key: 'audio', icon: '🎧', title: 'Audio Overview',
+      description: 'Listen to a spoken summary',
+      action: () => run('audio', '/studio/audio/', { context }),
     },
   ];
 
   return (
-    <div
-      className="w-72 shrink-0 flex flex-col h-full border-l overflow-hidden animate-slide-right"
-      style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)' }}
-    >
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div
-        className="flex items-center justify-between px-4 py-3 border-b shrink-0"
-        style={{ borderColor: 'var(--border)' }}
-      >
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700 shrink-0">
         <div className="flex items-center gap-2">
-          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--accent-dim)' }} >
-            <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-          </svg>
-          <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Studio</span>
+          <span className="material-symbols-outlined text-primary text-lg">auto_stories</span>
+          <span className="text-sm font-bold text-slate-800 dark:text-slate-100">MARS Forge</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-bold">AI Tools</span>
         </div>
-        <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/5 transition-colors">
-          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-            <path d="M6 18L18 6M6 6l12 12" />
-          </svg>
+        <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+          <span className="material-symbols-outlined text-sm text-slate-400">close</span>
         </button>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="flex-1 overflow-y-auto p-3 scrollbar-hide">
         {!hasContent && !uploadedFile ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <span className="text-3xl mb-3">🧪</span>
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-              Start a conversation to unlock Studio features like study guides, flashcards, and more.
+            <span className="material-symbols-outlined text-4xl text-slate-300 dark:text-slate-600 mb-3">science</span>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Start a conversation to unlock MARS Forge — generate study guides, flashcards, audio overviews, and more.
             </p>
           </div>
         ) : (
           <>
-            <div className="text-[10px] font-semibold uppercase tracking-wider mb-2 px-1" style={{ color: 'var(--text-muted)' }}>
+            {/* Source badge */}
+            {uploadedFile && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 mb-3">
+                <span className="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+                <span className="text-[11px] font-medium text-green-600 dark:text-green-400 truncate">{uploadedFile.name}</span>
+                <span className="text-[10px] text-green-500/60 ml-auto">{uploadedFile.chunks} chunks</span>
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2 px-1">
               Generate
             </div>
             <div className="flex flex-col gap-2 mb-4">
               {actions.map(a => (
                 <StudioCard
                   key={a.key}
-                  emoji={a.emoji}
+                  icon={a.icon}
                   title={a.title}
                   description={a.description}
                   onClick={a.action}
                   loading={loading === a.key}
+                  active={resultType === a.key}
                 />
               ))}
             </div>
 
+            {/* Error */}
             {error && (
-              <div
-                className="p-3 rounded-xl text-xs mb-3"
-                style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }}
-              >
+              <div className="p-3 rounded-xl text-xs mb-3 bg-red-500/10 text-red-500 border border-red-500/20">
                 {error}
               </div>
             )}
 
-            {/* Result */}
+            {/* Results */}
             {result && (
-              <div
-                className="p-3 rounded-xl border"
-                style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{resultTitle}</div>
+              <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                    {actions.find(a => a.key === resultType)?.title || 'Result'}
+                  </span>
                   <button
-                    onClick={() => setResult(null)}
-                    className="text-[10px] hover:underline"
-                    style={{ color: 'var(--text-muted)' }}
+                    onClick={() => { setResult(null); setResultType(''); }}
+                    className="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                   >
                     Clear
                   </button>
                 </div>
 
-                {/* Flashcards rendering */}
-                {result.flashcards && Array.isArray(result.flashcards) && (
-                  <div className="flex flex-col gap-2">
-                    {result.flashcards.map((fc, i) => (
-                      <div key={i} className="p-2 rounded-lg" style={{ background: 'var(--bg-tertiary)' }}>
-                        <div className="text-[11px] font-medium mb-1" style={{ color: '#6b9fff' }}>Q: {fc.question}</div>
-                        <div className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>A: {fc.answer}</div>
+                <div className="p-3">
+                  {/* Flashcards (NotebookLM-style flip deck) */}
+                  {result.flashcards && Array.isArray(result.flashcards) && (
+                    <FlashcardDeck flashcards={result.flashcards} />
+                  )}
+
+                  {/* FAQ (accordion) */}
+                  {result.faqs && Array.isArray(result.faqs) && (
+                    <FAQList faqs={result.faqs} />
+                  )}
+
+                  {/* Markdown content (study guide, briefing) */}
+                  {result.content && (
+                    <div className="prose prose-xs max-w-none dark:prose-invert text-xs leading-relaxed">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.content}</ReactMarkdown>
+                    </div>
+                  )}
+
+                  {/* Audio Player */}
+                  {(result.audio_base64 || result.text) && resultType === 'audio' && (
+                    <AudioPlayer audioBase64={result.audio_base64} text={result.text} format={result.format} />
+                  )}
+
+                  {/* Key topics */}
+                  {result.topics && Array.isArray(result.topics) && (
+                    <div className="space-y-2">
+                      {result.main_topic && (
+                        <div className="text-xs font-bold text-primary mb-1">{result.main_topic}</div>
+                      )}
+                      <div className="flex flex-wrap gap-1.5">
+                        {result.topics.map((t, i) => (
+                          <span
+                            key={i}
+                            className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary border border-primary/20"
+                          >
+                            {t}
+                          </span>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* The rest: markdown or plain */}
-                {result.content && (
-                  <div className="text-xs whitespace-pre-wrap leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                    {result.content}
-                  </div>
-                )}
-
-                {/* Audio */}
-                {result.audio_url && (
-                  <audio controls className="w-full mt-2 rounded-lg" src={result.audio_url} />
-                )}
-
-                {/* Key topics */}
-                {result.topics && Array.isArray(result.topics) && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {result.topics.map((t, i) => (
-                      <span
-                        key={i}
-                        className="px-2 py-0.5 rounded-full text-[10px]"
-                        style={{ background: 'var(--accent-dim)', color: '#6b9fff', border: '1px solid var(--border-accent)' }}
-                      >
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                      {result.entities && result.entities.length > 0 && (
+                        <>
+                          <div className="text-[10px] font-bold text-slate-400 uppercase mt-3 mb-1">Entities</div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {result.entities.map((e, i) => (
+                              <span
+                                key={i}
+                                className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                              >
+                                {e}
+                              </span>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </>
