@@ -18,6 +18,8 @@ pinecone>=3.0.0
 langchain-pinecone>=0.1.0
 
 # Vector Store — Local/FAISS (Student Mode, offline)
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.2.2+cpu
 faiss-cpu>=1.7.4
 sentence-transformers>=2.6.0
 langchain-huggingface>=0.0.3
