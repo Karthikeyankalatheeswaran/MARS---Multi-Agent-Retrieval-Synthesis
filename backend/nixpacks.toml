@@ -1,9 +1,2 @@
 [phases.setup]
 aptPkgs = ["tesseract-ocr", "tesseract-ocr-eng", "libtesseract-dev", "libleptonica-dev", "poppler-utils"]
-cmds = ["apt-get clean && rm -rf /var/lib/apt/lists/*"]
-
-[phases.install]
-cmds = ["python -m venv /opt/venv", ". /opt/venv/bin/activate", "pip install -r requirements.txt", "rm -rf ~/.cache/pip"]
-
-[variables]
-HF_HOME = "/app/data/huggingface_cache"
