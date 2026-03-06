@@ -12,7 +12,7 @@ from typing import List, Dict, Any
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_text_splitters import CharacterTextSplitter
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 
 from django.conf import settings
 
@@ -25,18 +25,14 @@ UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 # Lazy-loaded shared embeddings object (loaded once, reused)
-_embeddings: HuggingFaceEmbeddings | None = None
+_embeddings: FastEmbedEmbeddings | None = None
 
 
-def _get_embeddings() -> HuggingFaceEmbeddings:
+def _get_embeddings() -> FastEmbedEmbeddings:
     global _embeddings
     if _embeddings is None:
-        print("[FAISS] Loading local embedding model (offline)…")
-        _embeddings = HuggingFaceEmbeddings(
-            model_name=EMBED_MODEL,
-            model_kwargs={"device": "cpu"},
-            encode_kwargs={"normalize_embeddings": True},
-        )
+        print("[FAISS] Loading local embedding model (ONNX via fastembed)…")
+        _embeddings = FastEmbedEmbeddings(model_name=EMBED_MODEL)
         print("[FAISS] Embedding model ready.")
     return _embeddings
 
