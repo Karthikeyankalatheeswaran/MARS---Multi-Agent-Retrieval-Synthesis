@@ -49,13 +49,13 @@ ROOT_URLCONF = 'mars_project.urls'
 # CORS and CSRF configurations
 CORS_ALLOWED_ORIGINS = os.getenv(
     'CORS_ALLOWED_ORIGINS', 
-    'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174'
+    'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,https://mars-eight-iota.vercel.app'
 ).split(',')
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = os.getenv(
     'CSRF_TRUSTED_ORIGINS',
-    'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174'
+    'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,https://mars-eight-iota.vercel.app'
 ).split(',')
 
 TEMPLATES = [
@@ -107,6 +107,9 @@ TIME_ZONE = 'UTC'
 USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Ensure staticfiles directory exists to prevent Whitenoise UserWarning
+os.makedirs(STATIC_ROOT, exist_ok=True)
 
 # File upload settings — 200MB max, files > 2.5MB go to disk
 FILE_UPLOAD_MAX_MEMORY_SIZE = 209715200  # 200MB
